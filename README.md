@@ -1,2 +1,2 @@
-# Components
-Common component library
+# rollup-typescript-template
+rollup typescript template
