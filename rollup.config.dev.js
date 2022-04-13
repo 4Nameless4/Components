@@ -118,12 +118,9 @@ const rollup = {
       },
     }),
   ],
-  // external: ["lodash"],
-  // globals: {
-  //   lodash: "_",
-  // },
   watch: {
     clearScreen: false,
+    buildDelay: 1000,
   },
 };
 
