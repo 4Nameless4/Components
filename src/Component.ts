@@ -37,8 +37,10 @@ export abstract class Component<P extends t_props, OD> extends HTMLElement {
 
     this.SVG.style.width = "100%";
     this.SVG.style.height = "100%";
+    this.SVG.style.display = "block";
     this.Canvas.style.width = "100%";
     this.Canvas.style.height = "100%";
+    this.Canvas.style.display = "block";
 
     this.type = "svg";
   }

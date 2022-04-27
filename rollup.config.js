@@ -34,11 +34,9 @@ const rollup = {
       plugins: [terser()],
     },
   ],
+  external: ["d3"],
   plugins: [
-    nodeResolve({
-      extensions: [".js", ".ts"],
-      modulesOnly: true,
-    }),
+    nodeResolve(),
     commonjs(),
     progress(),
     json(),

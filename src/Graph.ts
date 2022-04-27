@@ -7,8 +7,10 @@ import {
   forceY,
   select,
   Simulation,
+  Selection,
+  drag,
 } from "d3";
-import { Component, t_data, t_obj_any } from "./Component";
+import { Component, deepAssign, t_data, t_obj_any } from "./Component";
 
 type t_position_data = {
   x: number;
@@ -42,17 +44,27 @@ type t_link_default_props = {
 
 type t_link_props = Partial<t_link_default_props>;
 
-type t_other_default_props = {
-  forceX: number;
-  forceY: number;
-  forceManyBody: number;
-  nodeParse?: t_node_props_parse;
-  linkParse?: t_link_props_parse;
+type t_force_props = {
   alpha: number;
   alphaDecay: number;
   alphaMin: number;
   alphaTarget: number;
   velocityDecay: number;
+};
+type t_force = {
+  x: number;
+  y: number;
+  manyBody: number;
+  linkDistance: number;
+  linkStrength: number;
+  collide: number;
+};
+
+type t_other_default_props = {
+  forceProps: t_force_props;
+  forces: t_force;
+  nodeParse?: t_node_props_parse;
+  linkParse?: t_link_props_parse;
 };
 
 type t_other_props = Partial<t_other_default_props>;
@@ -102,6 +114,8 @@ type t_parse_link = {
 
 type t_parse_data = $t_data_structure<t_parse_node[], t_parse_link[]>;
 
+type t_data_type = "link" | "node" | "labelnode";
+
 /** default */
 const defaultProps: t_default_props = {
   node: {
@@ -110,23 +124,31 @@ const defaultProps: t_default_props = {
   link: {
     size: 1,
   },
-  forceX: 0.05,
-  forceY: 0.05,
-  forceManyBody: -500,
-  alpha: 1,
-  alphaDecay: 0.001,
-  alphaMin: 0.001,
-  alphaTarget: 0,
-  velocityDecay: 0.4,
+  forceProps: {
+    alpha: 1,
+    alphaDecay: 0.001,
+    alphaMin: 0.001,
+    alphaTarget: 0,
+    velocityDecay: 0.4,
+  },
+  forces: {
+    x: 0.05,
+    y: 0.05,
+    manyBody: -500,
+    linkDistance: 50,
+    linkStrength: 0.8,
+    collide: 1,
+  },
 };
 
 export class Graph extends Component<t_props & t_default_props, t_origin_data> {
   private data: t_parse_data;
-  private dataMap: Map<string, t_parse_data>;
   protected props: t_props & t_default_props;
   protected originData: t_origin_data;
   private position: t_position;
   private force?: Simulation<t_parse_node, undefined>;
+  private nodes?: Selection<SVGGElement, t_parse_node, SVGElement, any>;
+  private links?: Selection<SVGGElement, t_parse_link, SVGElement, any>;
 
   constructor() {
     super();
@@ -144,16 +166,36 @@ export class Graph extends Component<t_props & t_default_props, t_origin_data> {
     this.props = { ...defaultProps };
 
     this.position = new Map();
-
-    this.dataMap = new Map();
   }
 
-  updateData(
-    key: string,
-    data: { props: t_node_props; position: t_position_data },
-    type: "link" | "node"
-  ) {
-    console.log(key);
+  updateProps(options: {
+    key: string;
+    type: t_data_type;
+    props: (t_node_props & Partial<t_position_data>) | t_link_props;
+  }) {
+    if (options.type === "node") {
+      const node = select(this.SVG)
+        .selectAll<SVGGElement, t_parse_node>("g.node")
+        .filter((d) => d.key === options.key);
+
+      const data = node.data();
+      deepAssign(data, {
+        ...options.props,
+      });
+
+      this.drawNode();
+    } else if (options.type === "link") {
+      const links = select(this.SVG)
+        .selectAll<SVGGElement, t_parse_link>("g.link")
+        .filter((d) => d.key === options.key);
+
+      const data = links.data();
+      deepAssign(data, {
+        ...options.props,
+      });
+
+      this.drawLink();
+    }
   }
 
   setPosition(position: t_position) {
@@ -211,30 +253,21 @@ export class Graph extends Component<t_props & t_default_props, t_origin_data> {
     Object.assign(this.data.links, parseLink);
   }
 
-  protected drawSvg(): void {
-    const root = select(this.SVG);
+  private drawNode() {
+    if (!this.nodes) return;
+    this.nodes.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
 
-    const nodes = root
-      .selectAll("g.node")
-      .data(this.data.nodes)
-      .join("g")
-      .classed("node", true)
-      .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
-
-    nodes
+    this.nodes
       .selectAll("circle")
       .data((d) => [d])
       .join("circle")
       .classed("circle", true)
       .attr("r", (d) => d.props.radius || null);
+  }
 
-    const links = root
-      .selectAll("g.link")
-      .data(this.data.links)
-      .join("g")
-      .classed("link", true);
-
-    links
+  private drawLink() {
+    if (!this.links) return;
+    this.links
       .selectAll("path.line")
       .data(this.data.links)
       .join("path")
@@ -243,28 +276,105 @@ export class Graph extends Component<t_props & t_default_props, t_origin_data> {
         "d",
         (d) => `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`
       );
+  }
 
+  dragOn() {
+    if (!this.nodes) return;
+    const dragsubject = (e: any) => {
+      if (!this.force) return;
+      return this.force.find(e.x, e.y);
+    };
+
+    const dragStart = (e: any, d: t_parse_node) => {
+      console.log("dragStart");
+    };
+    const dragged = (e: any, d: t_parse_node) => {
+      d.fx = e.x;
+      d.fy = e.y;
+    };
+    const dragEnd = (e: any, d: t_parse_node) => {
+      console.log("dragEnd");
+    };
+
+    this.nodes.call(
+      drag<any, t_parse_node, unknown>()
+        .subject(dragsubject)
+        .on("start", dragStart)
+        .on("drag", dragged)
+        .on("end", dragEnd)
+    );
+  }
+
+  dragOff() {
+    if (!this.nodes) return;
+    this.nodes.on(".drag", null);
+  }
+
+  private forceInit() {
     this.force = forceSimulation<t_parse_node>()
       .nodes(this.data.nodes)
-      .force("forceX", forceX(this.viewBox[2] / 2).strength(this.props.forceX))
-      .force("forceY", forceY(this.viewBox[3] / 2).strength(this.props.forceY))
+      .alpha(this.props.forceProps.alpha)
+      .alphaDecay(this.props.forceProps.alphaDecay)
+      .alphaMin(this.props.forceProps.alphaMin)
+      .alphaTarget(this.props.forceProps.alphaTarget)
+      .velocityDecay(this.props.forceProps.velocityDecay)
+      .on("tick", () => {
+        if (!this.nodes) return;
+        this.nodes.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+      });
+  }
+
+  private forceBind() {
+    if (!this.force) return;
+    this.force
+      .force(
+        "forceX",
+        forceX(this.viewBox[2] / 2).strength(this.props.forces.x)
+      )
+      .force(
+        "forceY",
+        forceY(this.viewBox[3] / 2).strength(this.props.forces.y)
+      )
       .force(
         "forceManyBody",
-        forceManyBody().strength(this.props.forceManyBody)
+        forceManyBody().strength(this.props.forces.manyBody)
       )
-      .force("forceLink", forceLink(this.data.links).distance(50).strength(0.8))
+      .force(
+        "forceLink",
+        forceLink(this.data.links)
+          .distance(this.props.forces.linkDistance)
+          .strength(this.props.forces.linkStrength)
+      )
       .force(
         "forceCollide",
-        forceCollide().radius((d: any) => d.props.radius)
-      )
-      .alpha(this.props.alpha)
-      .alphaDecay(this.props.alphaDecay)
-      .alphaMin(this.props.alphaMin)
-      .alphaTarget(this.props.alphaTarget)
-      .velocityDecay(this.props.velocityDecay)
-      .on("tick", () => {
-        nodes.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
-      });
+        forceCollide()
+          .radius((d: any) => d.props.radius)
+          .strength(this.props.forces.collide)
+      );
+  }
+
+  protected drawSvg(): void {
+    const root = select(this.SVG);
+
+    this.nodes = root
+      .selectAll<SVGGElement, t_parse_node>("g.node")
+      .data(this.data.nodes)
+      .join("g")
+      .classed("node", true);
+
+    this.drawNode();
+
+    this.links = root
+      .selectAll<SVGGElement, t_parse_link>("g.link")
+      .data(this.data.links)
+      .join("g")
+      .classed("link", true);
+
+    this.drawLink();
+
+    this.forceInit();
+
+    this.forceBind();
   }
 
   protected drawCanvas(): void {

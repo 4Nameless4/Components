@@ -1,22 +1,23 @@
-import { Component } from "../src/_Component";
+import { Component } from "../src/Component";
 
-export default class Demo<T extends { [k: string]: unknown }, K> {
+export default class Demo {
   root: HTMLElement;
-  private _component?: Component<unknown, unknown, unknown>;
+  private _component?: Component<any, any>;
 
-  constructor(component?: Component<unknown, unknown, unknown>) {
+  constructor(component?: Component<any, any>) {
     this.root =
       document.querySelector("#root") || document.createElement("div");
+
     if (component) {
       this._component = component;
     }
   }
 
-  set(component?: Component<unknown, unknown, unknown>) {
+  setComponent(component: Component<any, any>) {
     this._component = component;
   }
 
-  get() {
+  getComponent() {
     return this._component;
   }
 
@@ -28,5 +29,7 @@ export default class Demo<T extends { [k: string]: unknown }, K> {
     this._component.draw();
   }
 
-  destroy() {}
+  destroy() {
+    this._component = undefined;
+  }
 }

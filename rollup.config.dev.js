@@ -5,7 +5,6 @@ import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import serve from "rollup-plugin-serve";
 import os from "os";
-import path from "path";
 import glob from "glob";
 
 const dir = "./dist";
@@ -24,10 +23,13 @@ for (let n in inf) {
 
 function generateHtmlPlugin() {
   const demos = [];
+  let dir;
+
   return {
     name: "generate-html",
     options(options) {
       const input = glob.sync(options.input);
+      dir = options.input.split("/")[0];
       return {
         ...options,
         input,
@@ -35,6 +37,7 @@ function generateHtmlPlugin() {
     },
     buildStart() {
       demos.splice(0);
+      this.addWatchFile(dir);
     },
     load(id) {
       if (/\.demo\.(ts|js)$/g.test(id)) {
@@ -44,22 +47,65 @@ function generateHtmlPlugin() {
     },
     generateBundle() {
       demos.forEach((id) => {
-        const fileName = `${id.replace(/ts|js$/g, "")}.html`;
+        const fileName = `${id.replace(/\.ts|js$/g, "")}`;
         this.emitFile({
           type: "asset",
-          fileName,
+          fileName: `${fileName}.html`,
           source: `
           <!DOCTYPE html>
           <html>
           <head>
             <meta charset="UTF-8">
             <title>Title</title>
+            <link rel="stylesheet" href="/index.css" />
            </head>
           <body>
-            <script src="${fileName}.js" type="module"></script>
+            <div id="root"></div>
+            <script src="./${fileName}.js" type="module"></script>
           </body>
           </html>`,
         });
+      });
+      let source = `
+        const root = document.querySelector("#root");
+        const list = document.querySelector(".list");
+        const content = document.querySelector(".content");
+        
+        const demos = `;
+
+      source += JSON.stringify(demos);
+
+      source += `
+      demos.forEach((es)=>{
+        const name = es.replace(/\.demo\.(ts|js)$/g, "");
+        const filename = es.replace(/\.(ts|js)$/g, "");
+        
+        const item = document.createElement("div");
+        const link = document.createElement("a");
+        
+        item.classList.add(es);
+        
+        link.classList.add("link");
+        
+        link.text = name;
+        
+        link.href = 
+        `;
+
+      source += "`/dist/${filename}.html`";
+
+      source += `
+        link.target = "demoContent";
+        
+        item.appendChild(link);
+        list.appendChild(item);
+        
+      })`;
+
+      this.emitFile({
+        type: "asset",
+        fileName: "index.js",
+        source,
       });
     },
   };
@@ -72,7 +118,6 @@ const rollup = {
     format: "esm",
     sourcemap: true,
   },
-  external: ["d3"],
   plugins: [
     generateHtmlPlugin(),
     nodeResolve(),
