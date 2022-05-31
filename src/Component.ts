@@ -1,28 +1,36 @@
-export type t_obj_any = {
-  [k: string]: any;
+export type t_obj<T> = {
+  [k: string]: T;
 };
 
-export type t_props = t_obj_any;
+export type t_props = t_obj<unknown>;
 
-export type t_data<D, P> = {
+export type t_data<D, Props> = {
   data: D;
-  props: P;
+  props: Props;
 };
 
 export type t_type = "svg" | "canvas";
 export type t_viewbox = [number, number, number, number];
 
+export type t_set<Props, Data> = {
+  props: Props;
+  data: Data;
+};
+
 /**
- * P -> Props
- * OD -> Input data
+ * Props -> Props
+ * OriginDatum -> Input data
  */
-export abstract class Component<P extends t_props, OD> extends HTMLElement {
+export abstract class Component<
+  Props extends t_props,
+  OriginDatum
+> extends HTMLElement {
   readonly shadowRoot: ShadowRoot;
   readonly SVG: SVGElement;
   protected viewBox: t_viewbox;
   readonly Canvas: HTMLCanvasElement;
-  protected abstract props: P;
-  protected abstract originData: OD;
+  protected abstract props: Props;
+  protected abstract originData: OriginDatum;
   private type: t_type;
 
   constructor() {
@@ -62,25 +70,39 @@ export abstract class Component<P extends t_props, OD> extends HTMLElement {
     return this.type;
   }
 
-  setProps(props: P) {
+  set(parameter: t_set<Partial<Props>, OriginDatum>) {
+    this.setProps(
+      {
+        ...parameter.props,
+      },
+      false
+    );
+    this.setData({
+      ...parameter.data,
+    });
+    console.log(this.props);
+  }
+
+  setProps(props: Partial<Props>, isParse = true) {
     deepAssign(this.props, props);
-    this.originData && this.setData(this.originData);
+    isParse && this.originData && this.setData(this.originData);
   }
 
   getProps() {
     return deepAssign({}, this.props);
   }
 
-  setData(data: OD) {
+  setData(data: OriginDatum, isParse = true) {
     this.originData = Object.assign({}, data);
-    this.parseData();
+    isParse && this.parseData();
   }
 
   getData() {
     return Object.assign({}, this.originData);
   }
 
-  draw(): void {
+  draw(isParse = false): void {
+    isParse && this.parseData();
     if (this.type === "canvas") {
       this.SVG.remove();
       this.shadowRoot.appendChild(this.Canvas);
@@ -104,7 +126,7 @@ export abstract class Component<P extends t_props, OD> extends HTMLElement {
 
 export function deepAssign(originObj: any, ...obj: any[]) {
   obj.forEach((_obj) => {
-    deepForEach(_obj, (name: string, obj: t_obj_any, path?: string[]) => {
+    deepForEach(_obj, (name: string, obj: t_obj<unknown>, path?: string[]) => {
       if (!path) {
         originObj[name] = obj[name];
       } else {
@@ -123,12 +145,12 @@ export function deepAssign(originObj: any, ...obj: any[]) {
 }
 
 export function deepForEach(
-  obj: t_obj_any,
-  callback: (name: string, obj: t_obj_any, path?: string[]) => void,
+  obj: t_obj<any>,
+  callback: (name: string, obj: t_obj<unknown>, path?: string[]) => void,
   path?: string[]
 ) {
-  const _path = path || [];
   for (const p in obj) {
+    const _path = path || [];
     if (obj[p] instanceof Object) {
       _path.push(p);
       deepForEach(obj[p], callback, _path);
@@ -137,3 +159,8 @@ export function deepForEach(
     }
   }
 }
+
+(window as any).mzw = {
+  main: deepAssign,
+  child: deepForEach,
+};

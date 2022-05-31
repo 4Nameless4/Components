@@ -121,9 +121,9 @@ const rollup = {
   plugins: [
     generateHtmlPlugin(),
     nodeResolve(),
-    commonjs(),
-    progress(),
-    json(),
+    // commonjs(),
+    // progress(),
+    // json(),
     typescript({
       tsconfig: "tsconfig.json",
       tsconfigOverride: {
@@ -152,7 +152,7 @@ const rollup = {
   ],
   watch: {
     clearScreen: false,
-    buildDelay: 1000,
+    // buildDelay: 1000,
   },
 };
 
