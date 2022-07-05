@@ -21,118 +21,19 @@ for (let n in inf) {
   }
 }
 
-function generateHtmlPlugin() {
-  const demos = [];
-  let dir;
-
-  return {
-    name: "generate-html",
-    options(options) {
-      const input = glob.sync(options.input);
-      dir = options.input.split("/")[0];
-      return {
-        ...options,
-        input,
-      };
-    },
-    buildStart() {
-      demos.splice(0);
-      this.addWatchFile(dir);
-    },
-    load(id) {
-      if (/\.demo\.(ts|js)$/g.test(id)) {
-        const path = id.split("\\");
-        demos.push(path[path.length - 1]);
-      }
-    },
-    generateBundle() {
-      demos.forEach((id) => {
-        const fileName = `${id.replace(/\.ts|js$/g, "")}`;
-        this.emitFile({
-          type: "asset",
-          fileName: `${fileName}.html`,
-          source: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>Title</title>
-            <link rel="stylesheet" href="/index.css" />
-           </head>
-          <body>
-            <div id="root"></div>
-            <script src="./${fileName}.js" type="module"></script>
-          </body>
-          </html>`,
-        });
-      });
-      let source = `
-        const root = document.querySelector("#root");
-        const list = document.querySelector(".list");
-        const content = document.querySelector(".content");
-        
-        const demos = `;
-
-      source += JSON.stringify(demos);
-
-      source += `
-      demos.forEach((es)=>{
-        const name = es.replace(/\.demo\.(ts|js)$/g, "");
-        const filename = es.replace(/\.(ts|js)$/g, "");
-        
-        const item = document.createElement("div");
-        const link = document.createElement("a");
-        
-        item.classList.add(es);
-        
-        link.classList.add("link");
-        
-        link.text = name;
-        
-        link.href = 
-        `;
-
-      source += "`/dist/${filename}.html`";
-
-      source += `
-        link.target = "demoContent";
-        
-        item.appendChild(link);
-        list.appendChild(item);
-        
-      })`;
-
-      this.emitFile({
-        type: "asset",
-        fileName: "index.js",
-        source,
-      });
-    },
-  };
-}
-
 const rollup = {
-  input: "examples/*.demo.ts",
+  input: "index.ts",
   output: {
     dir: dir,
     format: "esm",
     sourcemap: true,
   },
   plugins: [
-    generateHtmlPlugin(),
     nodeResolve(),
-    // commonjs(),
-    // progress(),
-    // json(),
-    typescript({
-      tsconfig: "tsconfig.json",
-      tsconfigOverride: {
-        compilerOptions: {
-          emitDeclarationOnly: false,
-          declaration: false,
-        },
-      },
-    }),
+    commonjs(),
+    progress(),
+    json(),
+    typescript(),
     serve({
       contentBase: "",
       port,
@@ -154,6 +55,7 @@ const rollup = {
     clearScreen: false,
     // buildDelay: 1000,
   },
+  // external: ["d3"],
 };
 
 export default rollup;

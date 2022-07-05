@@ -10,10 +10,17 @@ import {
   Selection,
   drag,
   zoom,
+  create,
 } from "d3";
-import { Component, deepAssign, t_data } from "./Component";
+import {
+  align2textAnchorMap,
+  Component,
+  deepAssign,
+  t_data,
+  vAlign2dominantBaselineMap,
+} from "./Component";
 
-type t_position_data = {
+export type t_position_data = {
   x: number;
   y: number;
   vx?: number;
@@ -22,16 +29,16 @@ type t_position_data = {
   fy?: number;
 };
 
-type t_position = Map<string, t_position_data>;
+export type t_position = Map<string, t_position_data>;
 
 /** structure **/
-type $t_data_structure<NodeOriginDatum, LinkOriginDatum> = {
+export type $t_data_structure<NodeOriginDatum, LinkOriginDatum> = {
   nodes: NodeOriginDatum;
   links: LinkOriginDatum;
 };
 
 /** data **/
-type t_origin_node<T> = T & {
+export type t_origin_node<T> = T & {
   key?: string;
   x?: number;
   y?: number;
@@ -40,145 +47,223 @@ type t_origin_node<T> = T & {
   text?: string[];
 };
 
-type t_origin_link<T> = T & {
+export type t_origin_link<T> = T & {
   key?: string;
   source: number;
   target: number;
 };
 
-type t_origin_data<NodeOriginDatum, LinkOriginDatum> = $t_data_structure<
+export type t_origin_data<NodeOriginDatum, LinkOriginDatum> = $t_data_structure<
   t_origin_node<NodeOriginDatum>[],
   t_origin_link<LinkOriginDatum>[]
 >;
 
 /** props **/
-type t_text_style = {
-  align: "left" | "center" | "right";
-  vAlign: "top" | "middle" | "bottom";
-  offset: [number, number];
+export type t_tspan_style = {
+  align?: "left" | "center" | "right";
+  vAlign?: "top" | "middle" | "bottom";
+  color?: string;
+  lengthAdjust?: "spacing" | "spacingAndGlyphs";
+  textLength?: number;
+  rotate?: number;
+  dx?: number | string;
+  dy?: number | string;
+  x?: number | string;
+  y?: number | string;
 };
 
-type t_text = {
+export type t_text_style = {
+  transformBox: "border-box" | "fill-box" | "view-box" | "unset";
+  transform: [number | string, number | string];
+};
+
+export type t_tspan = {
   content: string;
-  style: t_text_style;
+  style?: t_tspan_style;
 };
 
-type t_node_default_props = {
+export type t_border_style = {
+  color?: string;
+  size?: number;
+  opacity?: number;
+  dashArray?: string;
+};
+
+export type t_node_default_props = {
   radius: number;
   color?: string;
   opacity?: number;
-  borderColor?: string;
-  borderSize?: number;
-  borderOpacity?: number;
-  borderDash?: string;
-  textStyle?: Partial<t_text_style>[];
+  borderStyle?: t_border_style;
+  tspanStyle?: t_tspan_style | t_tspan_style[];
+  textStyle: t_text_style;
 };
 
-type t_node_partial_props = Partial<t_node_default_props>;
+export type t_node_partial_props = Partial<t_node_default_props>;
 
-type t_link_default_props = {
+export type t_link_default_props = {
   size: number;
   color: string;
   opacity?: number;
-  dash?: string;
+  dashArray?: string;
 };
 
-type t_link_partial_props = Partial<t_link_default_props>;
+export type t_link_partial_props = Partial<t_link_default_props>;
 
-type t_force_default_props = {
+export type t_force_default_props = {
+  /**
+   * [0, 1] default: 1
+   */
   alpha: number;
+  /**
+   * [0, 1] default: 0.001
+   */
   alphaDecay: number;
+  /**
+   * [0, 1] default: 0.001
+   */
   alphaMin: number;
+  /**
+   * [0, 1] default: 0
+   */
   alphaTarget: number;
+  /**
+   * [0, 1] default: 0.4
+   */
   velocityDecay: number;
 };
 
-type t_force_partial_props = Partial<t_force_default_props>;
+export type t_force_partial_props = Partial<t_force_default_props>;
 
-type t_forceF<NodeOriginDatum, LinkOriginDatum> = (
+export type t_forceF<NodeOriginDatum, LinkOriginDatum> = (
   force: Simulation<t_parse_node<NodeOriginDatum, LinkOriginDatum>, undefined>,
   links: t_parse_link<NodeOriginDatum, LinkOriginDatum>[]
-) => Simulation<
-  t_parse_node<NodeOriginDatum, LinkOriginDatum>,
-  t_parse_link<NodeOriginDatum, LinkOriginDatum>
->[];
+) => void;
 
-type t_forces = {
+export type t_forces = {
+  /**
+   * [0, 1]
+   */
   x: number;
+  /**
+   * [0, 1]
+   */
   y: number;
+  /**
+   * [-~, ~]
+   */
   manyBody: number;
+  /**
+   * [0, ~]
+   */
   linkDistance: number;
+  /**
+   * [0, 1]
+   */
   linkStrength: number;
+  /**
+   * [0, 1]
+   */
   collide: number;
 };
 
-type t_partial_forces = Partial<t_forces>;
+export type t_partial_forces = Partial<t_forces>;
 
-type t_switch_default_props = {
+export type t_switch_default_props = {
   dragable?: boolean;
   zoomable?: boolean;
+  linkPadable?: boolean;
   dragLock?: boolean;
 };
 
-type t_switch_partial_props = Partial<t_switch_default_props>;
+export type t_switch_partial_props = Partial<t_switch_default_props>;
 
-type t_node_props_parseF<NodeOriginDatum> = (
+export type t_node_props_parseF<NodeOriginDatum> = (
   node: t_origin_node<NodeOriginDatum>
 ) => t_node_partial_props;
 
-type t_link_props_parseF<LinkOriginDatum> = (
+export type t_link_props_parseF<LinkOriginDatum> = (
   link: t_origin_link<LinkOriginDatum>
 ) => t_link_partial_props;
 
-type t_other_default_props<NodeOriginDatum, LinkOriginDatum> = {
+export type t_node_custom_callback<NodeOriginDatum, LinkOriginDatum> = (
+  data: t_parse_node<NodeOriginDatum, LinkOriginDatum>,
+  target: SVGGElement
+) => void;
+
+export type t_create_markerF<NodeOriginDatum, LinkOriginDatum> = (
+  parseLinkData: t_parse_link<NodeOriginDatum, LinkOriginDatum>,
+  isInverse: boolean
+) => SVGMarkerElement;
+
+export type t_other_default_props<NodeOriginDatum, LinkOriginDatum> = {
   forceProps: t_force_default_props;
   forces: t_forces | t_forceF<NodeOriginDatum, LinkOriginDatum>;
   nodeParse?: t_node_props_parseF<NodeOriginDatum>;
   linkParse?: t_link_props_parseF<LinkOriginDatum>;
+  nodeCustom?: t_node_custom_callback<NodeOriginDatum, LinkOriginDatum>;
   switch?: t_switch_default_props;
+  marker?: t_marker | t_create_markerF<NodeOriginDatum, LinkOriginDatum>;
 };
 
-type t_other_partial_props<NodeOriginDatum, LinkOriginDatum> = {
+export type t_marker = "arrow";
+export type t_other_partial_props<NodeOriginDatum, LinkOriginDatum> = {
   forceProps?: t_force_partial_props;
   forces?: t_partial_forces | t_forceF<NodeOriginDatum, LinkOriginDatum>;
   nodeParse?: t_node_props_parseF<NodeOriginDatum>;
   linkParse?: t_link_props_parseF<LinkOriginDatum>;
+  nodeCustom?: t_node_custom_callback<NodeOriginDatum, LinkOriginDatum>;
   switch?: t_switch_partial_props;
+  marker?: t_marker | t_create_markerF<NodeOriginDatum, LinkOriginDatum>;
 };
 
-type t_default_props<NodeOriginDatum, LinkOriginDatum> = {
+export type t_default_props<NodeOriginDatum, LinkOriginDatum> = {
   node: t_node_default_props;
   link: t_link_default_props;
 } & t_other_default_props<NodeOriginDatum, LinkOriginDatum>;
 
-type t_partial_props<NodeOriginDatum, LinkOriginDatum> = {
+export type t_partial_props<NodeOriginDatum, LinkOriginDatum> = {
   node?: t_node_partial_props;
   link?: t_link_partial_props;
 } & t_other_partial_props<NodeOriginDatum, LinkOriginDatum>;
 
 /** parse Data */
-type t_parse_node<NodeOriginDatum, LinkOriginDatum> = {
+export type t_parse_node<NodeOriginDatum, LinkOriginDatum> = {
   key: string;
   links: t_parse_link<NodeOriginDatum, LinkOriginDatum>[];
-  text: Required<t_text>[];
+  text?: t_tspan[];
+  custom?: t_node_custom_callback<NodeOriginDatum, LinkOriginDatum>;
 } & t_data<t_origin_node<NodeOriginDatum>, t_node_default_props> &
-  Partial<t_position_data>;
+  Partial<t_position_data> & {
+    x: number;
+    y: number;
+  };
 
-type t_parse_link<NodeOriginDatum, LinkOriginDatum> = {
+export type t_parse_link<NodeOriginDatum, LinkOriginDatum> = {
   key: string;
+  markerKeyS: string;
+  markerKeyE: string;
   source: t_parse_node<NodeOriginDatum, LinkOriginDatum>;
   target: t_parse_node<NodeOriginDatum, LinkOriginDatum>;
 } & t_data<t_origin_link<LinkOriginDatum>, t_link_default_props>;
 
-type t_parse_data<NodeOriginDatum, LinkOriginDatum> = $t_data_structure<
+export type t_parse_data<NodeOriginDatum, LinkOriginDatum> = $t_data_structure<
   t_parse_node<NodeOriginDatum, LinkOriginDatum>[],
   t_parse_link<NodeOriginDatum, LinkOriginDatum>[]
 >;
+export type t_parse_data_map<NodeOriginDatum, LinkOriginDatum> =
+  $t_data_structure<
+    Map<string, t_parse_node<NodeOriginDatum, LinkOriginDatum>>,
+    Map<string, t_parse_link<NodeOriginDatum, LinkOriginDatum>>
+  >;
 
 /** default */
 const defaultProps: t_default_props<any, any> = {
   node: {
     radius: 5,
+    textStyle: {
+      transformBox: "fill-box",
+      transform: ["0px", "-50%"],
+    },
   },
   link: {
     size: 1,
@@ -206,10 +291,11 @@ const defaultProps: t_default_props<any, any> = {
  * LinkOriginDatum: origin link data type
  */
 export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
-  t_default_props<NodeOriginDatum, LinkOriginDatum>,
+  t_partial_props<NodeOriginDatum, LinkOriginDatum>,
   t_origin_data<NodeOriginDatum, LinkOriginDatum>
 > {
   private data: t_parse_data<NodeOriginDatum, LinkOriginDatum>;
+  private dataMap: t_parse_data_map<NodeOriginDatum, LinkOriginDatum>;
   protected props: t_default_props<NodeOriginDatum, LinkOriginDatum>;
   protected originData: t_origin_data<NodeOriginDatum, LinkOriginDatum>;
   private position: t_position;
@@ -220,14 +306,17 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
   private nodes?: Selection<
     SVGGElement,
     t_parse_node<NodeOriginDatum, LinkOriginDatum>,
-    SVGElement,
+    SVGGElement,
     unknown
   >;
   private links?: Selection<
     SVGPathElement,
     t_parse_link<NodeOriginDatum, LinkOriginDatum>,
-    SVGElement,
+    SVGGElement,
     unknown
+  >;
+  protected drawStateMap: Set<
+    keyof t_partial_props<NodeOriginDatum, LinkOriginDatum>
   >;
 
   constructor() {
@@ -238,6 +327,11 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       links: [],
     };
 
+    this.dataMap = {
+      nodes: new Map(),
+      links: new Map(),
+    };
+
     this.originData = {
       nodes: [],
       links: [],
@@ -245,7 +339,31 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
 
     this.props = { ...defaultProps };
 
+    this.drawStateMap = new Set();
+    this.initDrawStateMap();
+
     this.position = new Map();
+  }
+
+  private initDrawStateMap() {
+    const props: {
+      [k in keyof Required<
+        t_partial_props<NodeOriginDatum, LinkOriginDatum>
+      >]: boolean;
+    } = {
+      node: true,
+      link: true,
+      forceProps: true,
+      forces: true,
+      nodeParse: true,
+      linkParse: true,
+      nodeCustom: true,
+      switch: true,
+      marker: true,
+    };
+    for (const name in props) {
+      this.drawStateMap.add(name as any);
+    }
   }
 
   // ************* props & data *************
@@ -265,26 +383,29 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
 
     const parseNode: t_parse_node<NodeOriginDatum, LinkOriginDatum>[] =
       this.originData.nodes.map((n, i) => {
-        const key = n.key || `node_${i}_${Date.now()}_mzw_graph`;
+        const key = n.key || `node_${i}_${this.hash}`;
         const p = this.position.get(key);
         const props = {
           ...this.props.node,
           ...(this.props.nodeParse && this.props.nodeParse(n)),
         };
-        const texts: Required<t_text>[] = [];
+        const texts: t_tspan[] = [];
 
         if (n.text) {
           n.text.forEach((t, i) => {
-            const textStyle = props.textStyle ? props.textStyle[i] : {};
-            texts.push({
+            const text: t_tspan = {
               content: t,
-              style: {
-                align: "center",
-                vAlign: "middle",
-                offset: [0, 0],
-                ...textStyle,
-              },
-            });
+            };
+
+            if (props.tspanStyle) {
+              if (Array.isArray(props.tspanStyle)) {
+                props.tspanStyle[i] && (text.style = props.tspanStyle[i]);
+              } else {
+                text.style = props.tspanStyle;
+              }
+            }
+
+            texts.push(text);
           });
         }
 
@@ -298,23 +419,33 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
           text: texts,
           ...p,
         };
+        if (this.dataMap.nodes.get(key)) {
+          this._dataKeyDuplicateError(result, "node", "nodes");
+        }
+        this.dataMap.nodes.set(key, result);
         return result;
       });
 
     const parseLink: t_parse_link<NodeOriginDatum, LinkOriginDatum>[] =
       this.originData.links.map((l, i) => {
-        const key = l.key || `link_${i}_${Date.now()}_mzw_graph`;
+        const key = l.key || `link_${i}_${this.hash}`;
         const props = {
           ...this.props.link,
           ...(this.props.linkParse && this.props.linkParse(l)),
         };
         const result: t_parse_link<NodeOriginDatum, LinkOriginDatum> = {
           key,
+          markerKeyS: `marker-start-${key}`,
+          markerKeyE: `marker-end-${key}`,
           data: l,
           props,
           source: parseNode[l.source],
           target: parseNode[l.target],
         };
+        if (this.dataMap.links.get(key)) {
+          this._dataKeyDuplicateError(result, "link", "links");
+        }
+        this.dataMap.links.set(key, result);
         return result;
       });
 
@@ -323,6 +454,23 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
     Object.assign(this.data.nodes, parseNode);
     Object.assign(this.data.links, parseLink);
   }
+
+  private _dataKeyDuplicateError(
+    data:
+      | t_parse_node<NodeOriginDatum, LinkOriginDatum>
+      | t_parse_link<NodeOriginDatum, LinkOriginDatum>,
+    who: string,
+    where: string
+  ) {
+    console.error();
+    console.error("**************************");
+    console.error(`Duplicate ${who} key: ${data.key} of ${where}`);
+    console.error(`Data: `);
+    console.error(data);
+    console.error("**************************");
+    console.error();
+  }
+
   // ************* props & data *************
 
   // ************* switch *************
@@ -342,7 +490,7 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       d: t_parse_node<NodeOriginDatum, LinkOriginDatum>
     ) => {
       if (!this.force) return;
-      this.force.restart();
+      this.force.alphaTarget(0.3).restart();
     };
     const dragged = (
       e: DragEvent,
@@ -357,8 +505,8 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       e: DragEvent,
       d: t_parse_node<NodeOriginDatum, LinkOriginDatum>
     ) => {
-      d.x = d.fx;
-      d.y = d.fy;
+      "number" === typeof d.fx && (d.x = d.fx);
+      "number" === typeof d.fy && (d.y = d.fy);
       if (!this.props.switch || !this.props.switch.dragLock) {
         delete d.fx;
         delete d.fy;
@@ -393,8 +541,9 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       zoomable: true,
     };
     const svg = select(this.SVG);
+    const view = select(this.SVGView);
     const zoomF = zoom<SVGElement, unknown>().on("zoom", (e) => {
-      svg.style("transform", e.transform);
+      view.transition().duration(50).attr("transform", e.transform);
     });
 
     svg.call(zoomF);
@@ -405,7 +554,7 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       ...this.props.switch,
       zoomable: false,
     };
-    select(this.SVG).on(".zoom", null);
+    select(this.SVGView).on(".zoom", null);
   }
   // ************* switch *************
 
@@ -424,19 +573,12 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
     if (!this.force) {
       this.force = forceSimulation<
         t_parse_node<NodeOriginDatum, LinkOriginDatum>
-      >()
-        .nodes(this.data.nodes)
-        .on("tick", () => {
-          if (!this.nodes || !this.links) return;
-          this.nodes.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
-          this.links.attr(
-            "d",
-            (d) =>
-              `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`
-          );
-        });
+      >().on("tick", () => {
+        this._updatePosition();
+      });
     }
 
+    this.force.nodes(this.data.nodes);
     this._forcePropsUpdate();
   }
 
@@ -481,9 +623,91 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
   // ************* force *************
 
   // ************* Render *************
-  private _drawNode() {
-    if (!this.nodes) return;
+  private _linkPadding(d: t_parse_link<NodeOriginDatum, LinkOriginDatum>) {
+    const sProps = d.source.props;
+    const tProps = d.target.props;
+
+    const sx = d.source.x;
+    const sy = d.source.y;
+    const tx = d.target.x;
+    const ty = d.target.y;
+
+    const sDistance =
+      sProps.radius +
+      (sProps.borderStyle && sProps.borderStyle.size
+        ? sProps.borderStyle.size
+        : 0);
+    const tDistance =
+      tProps.radius +
+      (tProps.borderStyle && tProps.borderStyle.size
+        ? tProps.borderStyle.size
+        : 0);
+
+    let resultSourceX = sx;
+    let resultSourceY = sy;
+    let resultTargetX = tx;
+    let resultTargetY = ty;
+
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const dr = Math.sqrt(dx * dx + dy * dy);
+    const sin = dy / dr;
+    const cos = dx / dr;
+
+    if (sDistance && sDistance > 0 && !(dx === 0 && dy === 0)) {
+      const rdx = sDistance * cos;
+      const rdy = sDistance * sin;
+
+      resultSourceX = sx + rdx;
+      resultSourceY = sy + rdy;
+    }
+    if (tDistance && tDistance > 0 && !(dx === 0 && dy === 0)) {
+      const rdx = tDistance * cos;
+      const rdy = tDistance * sin;
+
+      resultTargetX = tx - rdx;
+      resultTargetY = ty - rdy;
+    }
+    return {
+      sx: resultSourceX,
+      sy: resultSourceY,
+      tx: resultTargetX,
+      ty: resultTargetY,
+    };
+  }
+
+  private _updatePosition() {
+    if (!this.nodes || !this.links) return;
     this.nodes.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+    this.links.attr("d", (d) => {
+      let sx = d.source.x;
+      let sy = d.source.y;
+      let tx = d.target.x;
+      let ty = d.target.y;
+      if (this.props.switch && this.props.switch.linkPadable) {
+        const position = this._linkPadding(d);
+        sx = position.sx;
+        sy = position.sy;
+        tx = position.tx;
+        ty = position.ty;
+      }
+
+      return `M${sx},${sy} L${tx},${ty}`;
+    });
+  }
+
+  private _drawNode() {
+    this.nodes = select(this.SVGView)
+      .selectAll<SVGGElement, t_parse_node<NodeOriginDatum, LinkOriginDatum>>(
+        "g.node"
+      )
+      .data(this.data.nodes)
+      .join("g")
+      .classed("node", true);
+  }
+
+  private _drawNodeShape() {
+    if (!this.nodes) return;
 
     this.nodes
       .selectAll("circle.node")
@@ -493,28 +717,106 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       .attr("r", (d) => d.props.radius)
       .style("fill", (d) => d.props.color || null)
       .style("opacity", (d) => d.props.opacity || null)
-      .style("stroke", (d) => d.props.borderColor || null)
-      .style("stroke-width", (d) => d.props.borderSize || null)
-      .style("stroke-opacity", (d) => d.props.borderOpacity || null)
-      .style("stroke-dasharray", (d) => d.props.borderDash || null);
+      .style(
+        "stroke",
+        (d) => (d.props.borderStyle && d.props.borderStyle.color) || null
+      )
+      .style(
+        "stroke-width",
+        (d) => (d.props.borderStyle && d.props.borderStyle.size) || null
+      )
+      .style(
+        "stroke-opacity",
+        (d) => (d.props.borderStyle && d.props.borderStyle.opacity) || null
+      )
+      .style(
+        "stroke-dasharray",
+        (d) => (d.props.borderStyle && d.props.borderStyle.dashArray) || null
+      );
+  }
+
+  private _drawNodeText() {
+    if (!this.nodes) return;
 
     this.nodes
       .selectAll("text.text")
-      .data((d) => [d])
+      .data((d) => (d.text ? [d] : []))
       .join("text")
       .classed("text", true)
+      .style("transform-box", (d) => d.props.textStyle.transformBox || null)
+      .style("transform", (d) =>
+        d.props.textStyle.transform
+          ? `translate(${d.props.textStyle.transform[0]}, ${d.props.textStyle.transform[1]})`
+          : null
+      )
       .selectAll("tspan.textRow")
-      .data((d) => d.text)
+      .data((d) => d.text || [])
       .join("tspan")
       .classed("textRow", true)
       .text((d) => d.content)
-      .style("text-anchor", (d) => d.style.align)
-      // .style("text-anchor", (d) => d.style.vAlign)
-      // .style("text-anchor", (d) => d.style.offset);
+      .style("user-select", "none")
+      .style("fill", (d) => (d.style && d.style.color) || null)
+      .style("text-anchor", (d) =>
+        d.style && d.style.align ? align2textAnchorMap[d.style.align] : null
+      )
+      .style("dominant-baseline", (d) =>
+        d.style && d.style.vAlign
+          ? vAlign2dominantBaselineMap[d.style.vAlign]
+          : null
+      )
+      .attr("lengthAdjust", (d) =>
+        d.style && d.style.lengthAdjust ? d.style.lengthAdjust : null
+      )
+      .attr("textLength", (d) =>
+        d.style && d.style.textLength ? d.style.textLength : null
+      )
+      .attr("rotate", (d) =>
+        d.style && d.style.rotate ? d.style.rotate : null
+      )
+      .attr("dx", (d) =>
+        d.style &&
+        ("number" === typeof d.style.dx || "string" === typeof d.style.dx)
+          ? d.style.dx
+          : null
+      )
+      .attr("dy", (d) =>
+        d.style &&
+        ("number" === typeof d.style.dy || "string" === typeof d.style.dy)
+          ? d.style.dy
+          : "1em"
+      )
+      .attr("x", (d) =>
+        d.style &&
+        ("number" === typeof d.style.x || "string" === typeof d.style.x)
+          ? d.style.x
+          : 0
+      )
+      .attr("y", (d) =>
+        d.style &&
+        ("number" === typeof d.style.y || "string" === typeof d.style.y)
+          ? d.style.y
+          : null
+      );
+  }
+
+  private _drawNodeCustom() {
+    if (!this.nodes || !this.props.nodeCustom) return;
+    const custom = this.props.nodeCustom;
+
+    this.nodes
+      .selectAll<SVGGElement, t_parse_node<NodeOriginDatum, LinkOriginDatum>>(
+        "g.custom"
+      )
+      .data((d) => [d])
+      .join("g")
+      .classed("custom", true)
+      .each((d, i, a) => {
+        custom(d, a[i]);
+      });
   }
 
   private _drawLink() {
-    this.links = select(this.SVG)
+    this.links = select(this.SVGView)
       .selectAll<
         SVGPathElement,
         t_parse_link<NodeOriginDatum, LinkOriginDatum>
@@ -522,48 +824,141 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       .data(this.data.links)
       .join("path")
       .classed("line", true)
-      .attr(
-        "d",
-        (d) =>
-          `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`
-      )
       .style("opacity", (d) => d.props.opacity || null)
       .style("stroke", (d) => d.props.color || null)
       .style("stroke-width", (d) => d.props.size || null)
-      .style("stroke-dasharray", (d) => d.props.dash || null);
+      .style("stroke-dasharray", (d) => d.props.dashArray || null)
+      .attr("marker-end", (d) => `url(#${d.markerKeyE})`)
+      .attr("marker-start", (d) => `url(#${d.markerKeyS})`);
+  }
+
+  private _createMarker(type: t_marker, isInverse: boolean) {
+    const marker = create("svg:marker");
+    if (type === "arrow") {
+      marker
+        .attr("refX", "3")
+        .attr("refY", "3")
+        .attr("orient", "auto")
+        .attr("markerWidth", "6")
+        .attr("markerHeight", "6")
+        .append("path")
+        .attr("d", isInverse ? "M 6 0 L 0 3 L 6 6 z" : "M 0 0 L 6 3 L 0 6 z");
+    }
+    return marker.node();
+  }
+
+  private _drawLinkMarker() {
+    const marker = this.props.marker;
+    if (!marker) return;
+
+    select(this.SVGDefs)
+      .selectAll("marker.start")
+      .data(this.data.links)
+      .join((enter) =>
+        enter.append((d) => {
+          let element;
+          if ("string" === typeof marker) {
+            element = this._createMarker(marker, true);
+          } else {
+            element = marker(d, true);
+          }
+          return element;
+        })
+      )
+      .attr("id", (d) => d.markerKeyS)
+      .classed("start", true);
+
+    select(this.SVGDefs)
+      .selectAll("marker.end")
+      .data(this.data.links)
+      .join((enter) =>
+        enter.append((d) => {
+          let element;
+          if ("string" === typeof marker) {
+            element = this._createMarker(marker, false);
+          } else {
+            element = marker(d, false);
+          }
+          return element;
+        })
+      )
+      .attr("id", (d) => d.markerKeyE)
+      .classed("end", true);
   }
 
   protected drawSvg(): void {
-    const root = select(this.SVG);
+    if (
+      !this.drawState ||
+      this.drawState["marker"] ||
+      this.drawState["link"] ||
+      this.drawState["linkParse"]
+    )
+      this._drawLinkMarker();
 
-    this.nodes = root
-      .selectAll<SVGGElement, t_parse_node<NodeOriginDatum, LinkOriginDatum>>(
-        "g.node"
-      )
-      .data(this.data.nodes)
-      .join("g")
-      .classed("node", true);
+    if (
+      !this.drawState ||
+      this.drawState["node"] ||
+      this.drawState["nodeParse"]
+    )
+      this._drawNode();
 
-    this._drawNode();
+    if (
+      !this.drawState ||
+      this.drawState["node"] ||
+      this.drawState["nodeParse"]
+    )
+      this._drawNodeShape();
 
-    this._drawLink();
+    if (
+      !this.drawState ||
+      this.drawState["node"] ||
+      this.drawState["nodeParse"]
+    )
+      this._drawNodeText();
 
-    this._forceInit();
+    if (
+      !this.drawState ||
+      this.drawState["node"] ||
+      this.drawState["nodeParse"] ||
+      this.drawState["nodeCustom"]
+    )
+      this._drawNodeCustom();
 
-    this._forceBind();
+    if (
+      !this.drawState ||
+      this.drawState["link"] ||
+      this.drawState["linkParse"]
+    )
+      this._drawLink();
 
-    if (this.props.switch) {
-      if (this.props.switch.dragable) {
-        this.dragOn();
-      } else {
-        this.dragOff();
-      }
+    this._updatePosition();
 
-      if (this.props.switch.zoomable) {
-        this.zoomOn();
-      } else {
-        this.zoomOff();
-      }
+    if (
+      !this.drawState ||
+      this.drawState["forceProps"] ||
+      this.drawState["node"] ||
+      this.drawState["nodeParse"]
+    )
+      this._forceInit();
+
+    if (
+      !this.drawState ||
+      this.drawState["forces"] ||
+      this.drawState["link"] ||
+      this.drawState["linkParse"]
+    )
+      this._forceBind();
+
+    if (this.props.switch && this.props.switch.dragable) {
+      this.dragOn();
+    } else {
+      this.dragOff();
+    }
+
+    if (this.props.switch && this.props.switch.zoomable) {
+      this.zoomOn();
+    } else {
+      this.zoomOff();
     }
   }
 

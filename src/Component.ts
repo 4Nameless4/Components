@@ -25,30 +25,39 @@ export abstract class Component<
   Props extends t_props,
   OriginDatum
 > extends HTMLElement {
+  readonly hash: number;
   readonly shadowRoot: ShadowRoot;
   readonly SVG: SVGElement;
+  readonly SVGView: SVGGElement;
+  readonly SVGDefs: SVGDefsElement;
   protected viewBox: t_viewbox;
   readonly Canvas: HTMLCanvasElement;
   protected abstract props: Props;
   protected abstract originData: OriginDatum;
   private type: t_type;
+  protected abstract drawStateMap: Set<keyof Props>;
+  protected drawState?: t_obj<boolean>;
 
   constructor() {
     super();
+    this.hash = new Date().getTime();
     this.shadowRoot = this.attachShadow({ mode: "closed" });
 
     this.viewBox = [0, 0, 1920, 1080];
     this.SVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    this.SVGView = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    this.SVGDefs = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "defs"
+    );
+    this.SVGView.classList.add(this.getClass("view"));
+    this.SVG.style.width = "100%";
+    this.SVG.style.height = "100%";
+    this.SVG.appendChild(this.SVGView);
+    this.SVG.appendChild(this.SVGDefs);
     this.setViewBox(this.viewBox);
 
     this.Canvas = document.createElement("canvas");
-
-    this.SVG.style.width = "100%";
-    this.SVG.style.height = "100%";
-    this.SVG.style.display = "block";
-    this.Canvas.style.width = "100%";
-    this.Canvas.style.height = "100%";
-    this.Canvas.style.display = "block";
 
     this.type = "svg";
   }
@@ -70,7 +79,7 @@ export abstract class Component<
     return this.type;
   }
 
-  set(parameter: t_set<Partial<Props>, OriginDatum>) {
+  set(parameter: t_set<Props, OriginDatum>) {
     this.setProps(
       {
         ...parameter.props,
@@ -80,10 +89,10 @@ export abstract class Component<
     this.setData({
       ...parameter.data,
     });
-    console.log(this.props);
   }
 
-  setProps(props: Partial<Props>, isParse = true) {
+  setProps(props: Props, isParse = true) {
+    this.drawState = this._getDrawState(props);
     deepAssign(this.props, props);
     isParse && this.originData && this.setData(this.originData);
   }
@@ -107,14 +116,25 @@ export abstract class Component<
       this.SVG.remove();
       this.shadowRoot.appendChild(this.Canvas);
       this.drawCanvas();
-      return;
-    }
-    if (this.type === "svg") {
+    } else if (this.type === "svg") {
       this.Canvas.remove();
       this.shadowRoot.appendChild(this.SVG);
       this.drawSvg();
-      return;
     }
+    this.drawState = {};
+  }
+
+  protected getClass(className: string): string {
+    return `${className}-${this.hash}`;
+  }
+
+  private _getDrawState(props: Props): t_obj<boolean> | undefined {
+    let state: t_obj<boolean> | undefined;
+    for (const prop in props) {
+      state ??= {};
+      state[prop] = this.drawStateMap.has(prop);
+    }
+    return state;
   }
 
   protected abstract drawSvg(): void;
@@ -149,18 +169,23 @@ export function deepForEach(
   callback: (name: string, obj: t_obj<unknown>, path?: string[]) => void,
   path?: string[]
 ) {
+  const _path = path || [];
   for (const p in obj) {
-    const _path = path || [];
-    if (obj[p] instanceof Object) {
-      _path.push(p);
-      deepForEach(obj[p], callback, _path);
+    if (!Array.isArray(obj[p]) && "object" === typeof obj[p]) {
+      deepForEach(obj[p], callback, _path.concat(p));
     } else {
       callback(p, obj, path);
     }
   }
 }
 
-(window as any).mzw = {
-  main: deepAssign,
-  child: deepForEach,
+export const align2textAnchorMap = {
+  left: "end",
+  center: "middle",
+  right: "start",
+};
+export const vAlign2dominantBaselineMap = {
+  top: "auto",
+  middle: "middle",
+  bottom: "hanging",
 };
