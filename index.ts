@@ -92,6 +92,7 @@ const props: t_partial_props<any, any> = {
       size: 1,
       color: colors(d.key),
       opacity: 1,
+      marker: "arrow"
     };
   },
   switch: {
@@ -138,10 +139,7 @@ const props: t_partial_props<any, any> = {
       .data((d) => [d])
       .join("xhtml:div")
       .text("test");
-  },
-  marker: "arrow",
-  // marker: (data: t_parse_link<any, any>) =>
-  //   document.createElementNS("http://www.w3.org/2000/svg", "marker"),
+  }
 };
 
 const data = {

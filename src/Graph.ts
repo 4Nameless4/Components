@@ -70,16 +70,12 @@ export type t_tspan_style = {
   dy?: number | string;
   x?: number | string;
   y?: number | string;
+  size?: number;
 };
 
 export type t_text_style = {
   transformBox: "border-box" | "fill-box" | "view-box" | "unset";
   transform: [number | string, number | string];
-};
-
-export type t_tspan = {
-  content: string;
-  style?: t_tspan_style;
 };
 
 export type t_border_style = {
@@ -100,14 +96,37 @@ export type t_node_default_props = {
 
 export type t_node_partial_props = Partial<t_node_default_props>;
 
-export type t_link_default_props = {
+// !!!!!!
+export type t_label_text_style = {
+  color?: string;
+  size?: string;
+};
+
+export type t_link_label_default_props<NodeOriginDatum, LinkOriginDatum> = {
+  width: number;
+  height: number;
+  color?: string;
+  opacity?: number;
+  borderStyle?: t_border_style;
+  textStyle?: t_label_text_style;
+};
+
+export type t_link_default_props<NodeOriginDatum, LinkOriginDatum> = {
   size: number;
   color: string;
   opacity?: number;
   dashArray?: string;
+  marker?: t_marker | t_create_markerF<NodeOriginDatum, LinkOriginDatum>;
+  label?: t_link_label_default_props<NodeOriginDatum, LinkOriginDatum>;
+  inverse?: Pick<
+    t_link_default_props<NodeOriginDatum, LinkOriginDatum>,
+    "marker" | "label"
+  >;
 };
 
-export type t_link_partial_props = Partial<t_link_default_props>;
+export type t_link_partial_props<NodeOriginDatum, LinkOriginDatum> = Partial<
+  t_link_default_props<NodeOriginDatum, LinkOriginDatum>
+>;
 
 export type t_force_default_props = {
   /**
@@ -181,9 +200,9 @@ export type t_node_props_parseF<NodeOriginDatum> = (
   node: t_origin_node<NodeOriginDatum>
 ) => t_node_partial_props;
 
-export type t_link_props_parseF<LinkOriginDatum> = (
+export type t_link_props_parseF<NodeOriginDatum, LinkOriginDatum> = (
   link: t_origin_link<LinkOriginDatum>
-) => t_link_partial_props;
+) => t_link_partial_props<NodeOriginDatum, LinkOriginDatum>;
 
 export type t_node_custom_callback<NodeOriginDatum, LinkOriginDatum> = (
   data: t_parse_node<NodeOriginDatum, LinkOriginDatum>,
@@ -199,10 +218,9 @@ export type t_other_default_props<NodeOriginDatum, LinkOriginDatum> = {
   forceProps: t_force_default_props;
   forces: t_forces | t_forceF<NodeOriginDatum, LinkOriginDatum>;
   nodeParse?: t_node_props_parseF<NodeOriginDatum>;
-  linkParse?: t_link_props_parseF<LinkOriginDatum>;
+  linkParse?: t_link_props_parseF<NodeOriginDatum, LinkOriginDatum>;
   nodeCustom?: t_node_custom_callback<NodeOriginDatum, LinkOriginDatum>;
   switch?: t_switch_default_props;
-  marker?: t_marker | t_create_markerF<NodeOriginDatum, LinkOriginDatum>;
 };
 
 export type t_marker = "arrow";
@@ -210,23 +228,27 @@ export type t_other_partial_props<NodeOriginDatum, LinkOriginDatum> = {
   forceProps?: t_force_partial_props;
   forces?: t_partial_forces | t_forceF<NodeOriginDatum, LinkOriginDatum>;
   nodeParse?: t_node_props_parseF<NodeOriginDatum>;
-  linkParse?: t_link_props_parseF<LinkOriginDatum>;
+  linkParse?: t_link_props_parseF<NodeOriginDatum, LinkOriginDatum>;
   nodeCustom?: t_node_custom_callback<NodeOriginDatum, LinkOriginDatum>;
   switch?: t_switch_partial_props;
-  marker?: t_marker | t_create_markerF<NodeOriginDatum, LinkOriginDatum>;
 };
 
 export type t_default_props<NodeOriginDatum, LinkOriginDatum> = {
   node: t_node_default_props;
-  link: t_link_default_props;
+  link: t_link_default_props<NodeOriginDatum, LinkOriginDatum>;
 } & t_other_default_props<NodeOriginDatum, LinkOriginDatum>;
 
 export type t_partial_props<NodeOriginDatum, LinkOriginDatum> = {
   node?: t_node_partial_props;
-  link?: t_link_partial_props;
+  link?: t_link_partial_props<NodeOriginDatum, LinkOriginDatum>;
 } & t_other_partial_props<NodeOriginDatum, LinkOriginDatum>;
 
 /** parse Data */
+export type t_tspan = {
+  content: string;
+  style?: t_tspan_style;
+};
+
 export type t_parse_node<NodeOriginDatum, LinkOriginDatum> = {
   key: string;
   links: t_parse_link<NodeOriginDatum, LinkOriginDatum>[];
@@ -238,13 +260,33 @@ export type t_parse_node<NodeOriginDatum, LinkOriginDatum> = {
     y: number;
   };
 
-export type t_parse_link<NodeOriginDatum, LinkOriginDatum> = {
+export type t_parse_link_base<NodeOriginDatum, LinkOriginDatum> = {
   key: string;
-  markerKeyS: string;
-  markerKeyE: string;
+  markerKey: string;
   source: t_parse_node<NodeOriginDatum, LinkOriginDatum>;
   target: t_parse_node<NodeOriginDatum, LinkOriginDatum>;
-} & t_data<t_origin_link<LinkOriginDatum>, t_link_default_props>;
+  inverse?: t_parse_link_inverse<NodeOriginDatum, LinkOriginDatum>;
+  isInverse?: boolean;
+};
+
+export type t_parse_link<NodeOriginDatum, LinkOriginDatum> = t_parse_link_base<
+  NodeOriginDatum,
+  LinkOriginDatum
+> &
+  t_data<
+    t_origin_link<LinkOriginDatum>,
+    t_link_default_props<NodeOriginDatum, LinkOriginDatum>
+  > & {
+    x: number;
+    y: number;
+  };
+
+export type t_parse_link_inverse<NodeOriginDatum, LinkOriginDatum> =
+  t_parse_link_base<NodeOriginDatum, LinkOriginDatum> &
+    t_data<
+      t_origin_link<LinkOriginDatum>,
+      Pick<t_link_default_props<NodeOriginDatum, LinkOriginDatum>, "marker">
+    >;
 
 export type t_parse_data<NodeOriginDatum, LinkOriginDatum> = $t_data_structure<
   t_parse_node<NodeOriginDatum, LinkOriginDatum>[],
@@ -359,7 +401,6 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       linkParse: true,
       nodeCustom: true,
       switch: true,
-      marker: true,
     };
     for (const name in props) {
       this.drawStateMap.add(name as any);
@@ -378,9 +419,7 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
     return new Map(this.position.entries());
   }
 
-  protected parseData() {
-    if (!this.originData) return;
-
+  private _parseDataNode() {
     const parseNode: t_parse_node<NodeOriginDatum, LinkOriginDatum>[] =
       this.originData.nodes.map((n, i) => {
         const key = n.key || `node_${i}_${this.hash}`;
@@ -416,6 +455,8 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
           links: [],
           x: n.x || 0,
           y: n.y || 0,
+          fx: n.fx,
+          fy: n.fy,
           text: texts,
           ...p,
         };
@@ -425,7 +466,12 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
         this.dataMap.nodes.set(key, result);
         return result;
       });
+    return parseNode;
+  }
 
+  private _parseDataLink(
+    parseNode: t_parse_node<NodeOriginDatum, LinkOriginDatum>[]
+  ) {
     const parseLink: t_parse_link<NodeOriginDatum, LinkOriginDatum>[] =
       this.originData.links.map((l, i) => {
         const key = l.key || `link_${i}_${this.hash}`;
@@ -435,13 +481,34 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
         };
         const result: t_parse_link<NodeOriginDatum, LinkOriginDatum> = {
           key,
-          markerKeyS: `marker-start-${key}`,
-          markerKeyE: `marker-end-${key}`,
+          markerKey: `marker-end-${key}`,
           data: l,
           props,
           source: parseNode[l.source],
           target: parseNode[l.target],
+          x:
+            (parseNode[l.source].fx || parseNode[l.source].x) +
+            (parseNode[l.target].fx || parseNode[l.target].x),
+          y:
+            (parseNode[l.source].fy || parseNode[l.source].y) +
+            (parseNode[l.target].fy || parseNode[l.target].y),
         };
+        if (props.inverse) {
+          const inverse: t_parse_link_inverse<
+            NodeOriginDatum,
+            LinkOriginDatum
+          > = {
+            key: `${key}_inverse`,
+            markerKey: `marker-start-${key}`,
+            data: l,
+            props: props.inverse,
+            source: parseNode[l.target],
+            target: parseNode[l.source],
+            inverse: result,
+            isInverse: true,
+          };
+          result.inverse = inverse;
+        }
         if (this.dataMap.links.get(key)) {
           this._dataKeyDuplicateError(result, "link", "links");
         }
@@ -449,6 +516,12 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
         return result;
       });
 
+    return parseLink;
+  }
+
+  protected parseData() {
+    const parseNode = this._parseDataNode();
+    const parseLink = this._parseDataLink(parseNode);
     this.data.nodes.splice(0);
     this.data.links.splice(0);
     Object.assign(this.data.nodes, parseNode);
@@ -796,6 +869,9 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
         ("number" === typeof d.style.y || "string" === typeof d.style.y)
           ? d.style.y
           : null
+      )
+      .style("font-size", (d) =>
+        d.style && "number" === typeof d.style.size ? d.style.size : null
       );
   }
 
@@ -828,8 +904,10 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
       .style("stroke", (d) => d.props.color || null)
       .style("stroke-width", (d) => d.props.size || null)
       .style("stroke-dasharray", (d) => d.props.dashArray || null)
-      .attr("marker-end", (d) => `url(#${d.markerKeyE})`)
-      .attr("marker-start", (d) => `url(#${d.markerKeyS})`);
+      .attr("marker-end", (d) => `url(#${d.markerKey})`)
+      .attr("marker-start", (d) =>
+        d.inverse ? `url(#${d.inverse.markerKey})` : null
+      );
   }
 
   private _createMarker(type: t_marker, isInverse: boolean) {
@@ -848,41 +926,50 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
   }
 
   private _drawLinkMarker() {
-    const marker = this.props.marker;
-    if (!marker) return;
-
     select(this.SVGDefs)
       .selectAll("marker.start")
-      .data(this.data.links)
+      .data(
+        this.data.links.filter((d) => !!(d.inverse && d.inverse.props.marker))
+      )
       .join((enter) =>
         enter.append((d) => {
           let element;
-          if ("string" === typeof marker) {
-            element = this._createMarker(marker, true);
+          const data = d.inverse;
+          if (
+            data &&
+            data.props.marker &&
+            "string" !== typeof data.props.marker
+          ) {
+            element = data.props.marker(d, true);
           } else {
-            element = marker(d, true);
+            element = this._createMarker(
+              data && "string" === typeof data.props.marker
+                ? data.props.marker
+                : "arrow",
+              true
+            );
           }
           return element;
         })
       )
-      .attr("id", (d) => d.markerKeyS)
+      .attr("id", (d) => (d.inverse ? d.inverse.markerKey : null))
       .classed("start", true);
 
     select(this.SVGDefs)
       .selectAll("marker.end")
-      .data(this.data.links)
+      .data(this.data.links.filter((d) => !!d.props.marker))
       .join((enter) =>
         enter.append((d) => {
           let element;
-          if ("string" === typeof marker) {
-            element = this._createMarker(marker, false);
+          if ("string" !== typeof d.props.marker && d.props.marker) {
+            element = d.props.marker(d, false);
           } else {
-            element = marker(d, false);
+            element = this._createMarker(d.props.marker || "arrow", false);
           }
           return element;
         })
       )
-      .attr("id", (d) => d.markerKeyE)
+      .attr("id", (d) => d.markerKey)
       .classed("end", true);
   }
 
