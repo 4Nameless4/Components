@@ -10,6 +10,7 @@ for (let i = 0; i < 500; i++) {
   if (i === 0) {
     node.r = 100;
     node.fx = node.fy = 0;
+    node.fill = "#00000000"
   }
 }
 

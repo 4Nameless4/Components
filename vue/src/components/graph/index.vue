@@ -31,7 +31,7 @@ export interface t_data_node {
   fy?: number;
   fill?: string;
   borderColor?: string;
-  borderWidth?: string;
+  borderWidth?: number;
   text?: string;
   r?: number;
 }
@@ -39,7 +39,7 @@ export interface t_data_link {
   source: string;
   target: string;
   color?: string;
-  width?: string;
+  width?: number;
 }
 
 export interface t_node extends Required<Omit<t_data_node, "fx" | "fy">> {
@@ -90,10 +90,10 @@ function initData() {
       fx: node.fx,
       fy: node.fy,
 
-      fill: nodeColor(id) || "",
-      borderColor: "#000000",
-      borderWidth: "0",
-      text: "",
+      fill: node.fill || nodeColor(id) || "",
+      borderColor: node.borderColor || "#000000",
+      borderWidth: node.borderWidth || 0,
+      text: node.text || "",
       r: node.r || 5,
 
       ...d,
@@ -125,7 +125,7 @@ function initData() {
         target: tar,
 
         color: "#000",
-        width: "3",
+        width: 3,
         ...d,
       });
   });
@@ -187,31 +187,31 @@ defineExpose({
 
 <template>
   <svg class="graph" ref="graphEl">
-    <g class="links">
-      <path
-        class="link"
-        v-for="link in _data.links"
-        :d="`M${link[1].source.x},${link[1].source.y}L${link[1].target.x},${link[1].target.y}`"
-        :key="link[1].id"
-        :stroke="link[1].color"
-        :stroke-width="link[1].width"
-        fill="none"
-      ></path>
-    </g>
-    <g class="nodes">
-      <g
-        class="node"
-        v-for="node in _data.nodes"
-        :key="node[1].id"
-        :transform="`translate(${node[1].x},${node[1].y})`"
-      >
-        <circle
-          :r="node[1].r"
-          :fill="node[1].fill"
-          :stroke="node[1].borderColor"
-          :stroke-width="node[1].borderWidth"
-        ></circle>
-      </g>
+    <path
+      class="link"
+      v-for="link in _data.links"
+      :d="`M${link[1].source.x},${link[1].source.y}L${link[1].target.x},${link[1].target.y}`"
+      :key="link[1].id"
+      :stroke="link[1].color"
+      :stroke-width="link[1].width"
+      fill="none"
+    ></path>
+
+    <g
+      class="node"
+      v-for="node in _data.nodes"
+      :key="node[1].id"
+      :transform="`translate(${node[1].x},${node[1].y})`"
+    >
+      <circle
+        :r="node[1].r"
+        :fill="node[1].fill"
+        :stroke="node[1].borderColor"
+        :stroke-width="node[1].borderWidth"
+      ></circle>
+      <text v-if="node[1].text">
+        {{ node[1].text }}
+      </text>
     </g>
   </svg>
 </template>
