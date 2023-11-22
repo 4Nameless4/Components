@@ -8,9 +8,9 @@ for (let i = 0; i < 500; i++) {
   };
   nodes.push(node);
   if (i === 0) {
-    node.r = 100;
+    node.r = 200;
     node.fx = node.fy = 0;
-    node.fill = "#00000000"
+    node.fill = "#00000000";
   }
 }
 
@@ -28,13 +28,25 @@ function pointermove(e: PointerEvent) {
   if (!node || !simulation) return;
   node.fx = e.offsetX - graphInstance.widthRef / 2;
   node.fy = e.offsetY - graphInstance.heightRef / 2;
-  simulation.alpha(0.3);
+  simulation.alpha(0.3).restart();
+}
+function initNodeData(data: t_data_node, index: number) {
+  if (data.id !== "n0") {
+    return {
+      text: String(index),
+      r: 30,
+    };
+  }
+  return;
 }
 </script>
 
 <template>
-  <Graph :data="graphData" force @pointermove="pointermove" ref="graph" />
+  <Graph
+    :data="graphData"
+    force
+    @pointermove="pointermove"
+    ref="graph"
+    :initNodeData="initNodeData"
+  />
 </template>
-
-<style scoped>
-</style>

@@ -14,12 +14,14 @@ import {
 
 export interface t_props {
   data?: { nodes: t_data_node[]; links: t_data_link[] };
-  initData?: (data: {
-    data: t_data_node | t_data_link;
-    type: "node" | "link";
-  }) =>
-    | Omit<Required<t_node>, "id" | "data">
-    | Omit<Required<t_link>, "id" | "data" | "source" | "target">;
+  initNodeData?: (
+    data: t_data_node,
+    index: number
+  ) => Omit<Partial<t_node>, "id" | "data"> | void;
+  initLinkData?: (
+    data: t_data_link,
+    index: number
+  ) => Omit<Partial<t_link>, "id" | "data" | "source" | "target"> | void;
   force?: Force<t_node, t_link>[] | Boolean;
 }
 
@@ -75,12 +77,12 @@ const nodeColor = randomColor();
 function initData() {
   const nodes: Map<string, t_node> = new Map();
   const links: Map<string, t_link> = new Map();
-  const init = props.initData;
-  console.log("*** init data ***");
-  props.data.nodes.forEach((node: t_data_node) => {
+  console.info("*** init data ***");
+  props.data.nodes.forEach((node: t_data_node, index) => {
     const id = node.id;
 
-    const d = init && init({ data: node, type: "node" });
+    const init = props.initNodeData;
+    const d = init && init(node, index);
 
     nodes.set(id, {
       id: id,
@@ -100,7 +102,7 @@ function initData() {
     });
   });
 
-  props.data.links.forEach((link: t_data_link) => {
+  props.data.links.forEach((link: t_data_link, index) => {
     const _id = `${link.source}_${link.target}`;
 
     let id = _id;
@@ -113,7 +115,8 @@ function initData() {
     const src = nodes.get(link.source);
     const tar = nodes.get(link.target);
 
-    const d = init && init({ data: link, type: "link" });
+    const init = props.initLinkData;
+    const d = init && init(link, index);
 
     src &&
       tar &&
@@ -138,12 +141,11 @@ function initData() {
 
 const _data = computed(initData);
 
+// force bind
 let simulation: Simulation<t_node, t_link> | null = null as any;
 let forceCount = 0;
-
-// force bind
 function forceBind() {
-  console.log("*** force bind ***");
+  console.info("*** force bind ***");
   let forces = props.force;
   if (!forces && forces !== "") {
     if (simulation) {
@@ -221,5 +223,11 @@ defineExpose({
   width: 100%;
   height: 100%;
   transform-origin: center;
+}
+
+.graph text {
+  dominant-baseline: middle;
+  alignment-baseline: middle;
+  text-anchor: middle;
 }
 </style>
