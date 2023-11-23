@@ -1,39 +1,43 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import Graph from "./demos/Graph.vue";
+import { ElButton, ElMenu, ElMenuItem, ElIcon } from "element-plus";
 
 const components = [Graph];
 const selected = ref<number | undefined>(undefined);
-function click(index: number) {
-  if (selected.value === index) {
-    selected.value = undefined;
-  } else {
-    selected.value = index;
-  }
-}
+const isExpend = ref(false);
 </script>
 
 <template>
   <header>
     <div class="header">
-      <a class="home"><img src="" /></a>
-      <button class="option"></button>
+      <a class="home">
+        <el-icon> <House /> </el-icon>
+      </a>
+      <el-button class="menubtn" @click="isExpend = !isExpend">
+        <el-icon> <Menu /> </el-icon
+      ></el-button>
     </div>
   </header>
   <div class="page-wrapper">
-    <!-- <div class="aside-group">
-      <aside class="sidebar">
+    <div class="aside-group">
+      <aside :class="{ sidebar: true, expend: isExpend }">
         <nav>
-          <ul>
-            <li
-              class="click-able"
+          <el-menu
+            @select="
+              (index) => {
+                selected = Number(index);
+                isExpend = false;
+              }
+            "
+          >
+            <el-menu-item
               v-for="(comp, index) in components"
               :key="comp.__name"
-              @click="click(index)"
+              :index="String(index)"
+              >{{ comp.__name }}</el-menu-item
             >
-              {{ comp.__name }}
-            </li>
-          </ul>
+          </el-menu>
         </nav>
       </aside>
       <aside class="toc">
@@ -43,11 +47,11 @@ function click(index: number) {
           </ul>
         </nav>
       </aside>
-    </div> -->
+    </div>
     <main class="main-content">
-      <!-- <section class="full" v-if="selected != null">
+      <section class="full" v-if="selected != null">
         <component :is="components[selected]"></component>
-      </section> -->
+      </section>
     </main>
   </div>
   <footer></footer>
@@ -57,66 +61,84 @@ function click(index: number) {
 aside {
   overflow: hidden;
 }
-ul {
+nav {
   list-style: none;
 }
 .header {
+  --padding-content: 0.5rem;
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem;
+  padding: var(--padding-content);
 }
 .header .home {
   width: var(--header-size);
   height: var(--header-size);
+  border: 1px solid;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-.header .option {
+.header .home:hover {
+  cursor: pointer;
+}
+.header .menubtn {
   width: var(--header-size);
   height: var(--header-size);
 }
 .page-wrapper {
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 .main-content {
   height: 100%;
   border: 1px solid black;
 }
 .aside-group {
-  /* display: contents; */
+  display: contents;
 }
-/* .page-wrapper {
-  position: relative;
-  display: grid;
-  grid-template-areas: "sidebar main toc";
-  grid-template-columns: minmax(0, 1fr) minmax(0, 5fr) minmax(0, 1fr);
-} */
-.sidebar {
-  /* grid-area: sidebar; */
-  width: 0;
-}
-/* .main-content {
-  grid-area: main;
-} */
+.sidebar,
 .toc {
-  /* grid-area: toc; */
-  width: 0;
+  position: fixed;
+  top: calc(var(--header-size) + var(--padding-content));
+  max-width: 20rem;
+  width: 80vw;
+  height: 100%;
 }
-/* .sidebar li {
-  background: #c9c9c9;
-} */
-/* .toc li {
-  background: #c9c9c9;
-} */
-@media screen and (min-width: 800px) {
-  /* .sidebar {
+.sidebar {
+  transition: 0.3s linear;
+  transform: translateX(-100%);
+  will-change: transform;
+  border: 1px solid;
+}
+.toc {
+  width: 0;
+  height: 0;
+}
+.sidebar.expend {
+  transform: translateX(0);
+}
+@media screen and (min-width: 1000px) {
+  .page-wrapper {
+    display: flex;
+  }
+  .sidebar {
     position: sticky;
     left: 0;
     top: 0;
+    transform: translateX(0);
   }
   .toc {
     position: sticky;
     right: 0;
     top: 0;
-  } */
+  }
+  .main-content {
+    flex: 1;
+  }
+  .header .menubtn {
+    display: none;
+  }
 }
 </style>

@@ -48,5 +48,6 @@ function initNodeData(data: t_data_node, index: number) {
     @pointermove="pointermove"
     ref="graph"
     :initNodeData="initNodeData"
+    zoomable
   />
 </template>

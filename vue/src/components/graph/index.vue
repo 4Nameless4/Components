@@ -23,6 +23,7 @@ export interface t_props {
     index: number
   ) => Omit<Partial<t_link>, "id" | "data" | "source" | "target"> | void;
   force?: Force<t_node, t_link>[] | Boolean;
+  zoomable?: boolean;
 }
 
 export interface t_data_node {
@@ -66,6 +67,7 @@ export default defineComponent({
 const props = withDefaults(defineProps<t_props>(), {
   data: () => ({ nodes: [], links: [] }),
   force: () => true,
+  zoomable: true,
 });
 // resize 动态改变svg的viewbox
 const { elementRef: graphEl, widthRef, heightRef } = autoSize();
@@ -179,6 +181,12 @@ function forceBind() {
 
 watch([_data, () => props.force], forceBind, { immediate: true });
 
+function zoom(e: WheelEvent) {
+  if (!props.zoomable) return;
+  console.log(e.offsetX);
+  console.log(e.offsetY);
+}
+
 defineExpose({
   _data,
   simulation,
@@ -188,7 +196,7 @@ defineExpose({
 </script>
 
 <template>
-  <svg class="graph" ref="graphEl">
+  <svg class="graph" ref="graphEl" @wheel="zoom">
     <path
       class="link"
       v-for="link in _data.links"
