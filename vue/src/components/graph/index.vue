@@ -7,7 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
-import { autoSize, getID, randomColor } from "../common";
+import { autoSize, getID, randomColor, zoom } from "../common";
 import {
   Force,
   Simulation,
@@ -199,68 +199,32 @@ const svgTransofrmProps = ref({
   x: 0,
   y: 0,
 });
-function zoom(event: WheelEvent) {
+
+function wheel(event: WheelEvent) {
   const svg = graphEl.value;
   if (!props.zoomable || !svg) return;
-
-  const {
-    scale: oldScale,
-    x: transformX,
-    y: transformY,
-  } = svgTransofrmProps.value;
-  // 计算scale
-  const newScale =
-    oldScale +
+  const transformGEl = svg.querySelector("g[transform]");
+  if (!transformGEl) return;
+  const scaleOffset =
     -event.deltaY *
-      (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) *
-      (event.ctrlKey ? 10 : 1);
-  svgTransofrmProps.value.scale = Math.max(Math.min(newScale, 2), 0.5);
+    (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) *
+    (event.ctrlKey ? 10 : 1);
 
-  const SVGRect = svg.getBoundingClientRect();
-  const viewbox = [
-    svg.viewBox.baseVal.x,
-    svg.viewBox.baseVal.y,
-    svg.viewBox.baseVal.width,
-    svg.viewBox.baseVal.height,
-  ];
-  // zoom center 在屏幕坐标系下，需要缩放的中心点相对于svg左上角的偏移量
-  const event2SVGOffsetPos = [
-    event.clientX - SVGRect.x,
-    event.clientY - SVGRect.y,
-  ];
-  // svg的viewbox与实际的width、height的比例
-  // 为了换算出 缩放中心点（屏幕坐标系）在 svg 未缩放平移时对应的(svg坐标系)坐标
-  const svgAutoSizeRatio = Math.max(
-    viewbox[2] / SVGRect.width,
-    viewbox[3] / SVGRect.height
-  );
+  const { scale, x, y } = zoom({
+    transformEL: transformGEl,
+    scaleOffset,
+    clientPos: [event.clientX, event.clientY],
+    svg
+  });
 
-  // zoom 中心坐标（SVG坐标系，并且未transform时的坐标）
-  const event2SVGPos = [
-    event2SVGOffsetPos[0] * svgAutoSizeRatio,
-    event2SVGOffsetPos[1] * svgAutoSizeRatio,
-  ];
-
-  // 补偿 svg translate的值（要求transform时translate在scale前面）
-  // const event2SVGPosTransformOffset = [
-  //   ( - event2SVGPos[0]) * (newScale - 1),
-  //   ( - event2SVGPos[1]) * (newScale - 1),
-  // ];
-  svgTransofrmProps.value.x = event2SVGPos[0];
-  svgTransofrmProps.value.y = event2SVGPos[1];
-  // svgTransofrmProps.value.x = event2SVGPosTransformOffset[0];
-  // svgTransofrmProps.value.y = event2SVGPosTransformOffset[1];
-
-  console.log("offset:", event2SVGOffsetPos);
-  console.log("ratio:", svgAutoSizeRatio);
-  console.log("scale:", newScale);
-  console.log(event2SVGPosTransformOffset);
+  svgTransofrmProps.value.scale = scale;
+  svgTransofrmProps.value.x = x;
+  svgTransofrmProps.value.y = y;
 }
 
 const transform = computed(() => {
   const t = svgTransofrmProps.value;
   return `translate(${t.x},${t.y}) scale(${t.scale})`;
-  // return `translate(0 0) scale(1)`;
 });
 
 defineExpose({
@@ -268,11 +232,12 @@ defineExpose({
   simulation,
   widthRef,
   heightRef,
+  graphEl,
 });
 </script>
 
 <template>
-  <svg class="graph" ref="graphEl" @wheel.passive="zoom">
+  <svg class="graph" ref="graphEl" @wheel.passive="wheel">
     <g :transform="transform">
       <path
         class="link"

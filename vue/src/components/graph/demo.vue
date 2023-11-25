@@ -53,12 +53,6 @@ function initLinkData({ index }: { index: number }) {
     color: linkColor(index),
   };
 }
-function click(e: MouseEvent) {
-  console.log(e.clientX);
-  console.log(e.clientY);
-  console.log(e.offsetX);
-  console.log(e.offsetY);
-}
 </script>
 
 <template>
@@ -66,7 +60,6 @@ function click(e: MouseEvent) {
     :data="graphData"
     force
     @pointermove="pointermove"
-    @click="click"
     ref="graph"
     :initNodeData="initNodeData"
     :initLinkData="initLinkData"
