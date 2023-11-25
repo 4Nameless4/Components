@@ -1,7 +1,7 @@
 import { onMounted, ref } from "vue";
 
 export function autoSize() {
-  const elementRef = ref<SVGElement | null>(null);
+  const elementRef = ref<SVGSVGElement | null>(null);
   const widthRef = ref<number>(0);
   const heightRef = ref<number>(0);
   onMounted(() => {
@@ -11,7 +11,8 @@ export function autoSize() {
       const h = el.clientHeight;
       widthRef.value = w;
       heightRef.value = h;
-      el.setAttribute("viewBox", `-${w / 2} -${h / 2} ${w} ${h}`);
+      el.setAttribute("viewBox", `0 0 1000 1000`);
+      // el.setAttribute("viewBox", `-${w / 2} -${h / 2} ${w} ${h}`);
     });
     ob.observe(el);
   });
@@ -54,5 +55,31 @@ export function randomColor(
       }
       return c;
     }
+  };
+}
+// 获得不重复的ID
+// 如果id已存在将加入指定参数和计数
+export function getID() {
+  const idGroup = new Set();
+
+  return function (
+    preid: string,
+    props: {
+      suffix?: string;
+      warn?: (preid: string, nowid: string) => string;
+    } = {}
+  ) {
+    const { suffix, warn } = props;
+    let id = preid;
+    let count = 0;
+    while (idGroup.has(id)) {
+      count++;
+      id = preid + count + (suffix || "");
+    }
+    idGroup.add(id);
+    if (id !== preid && warn) {
+      console.warn(warn(preid, id));
+    }
+    return id;
   };
 }

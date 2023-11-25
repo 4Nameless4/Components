@@ -1,6 +1,13 @@
 <script lang="ts">
-import { computed, defineComponent, defineProps, reactive, watch } from "vue";
-import { autoSize, randomColor } from "../common";
+import {
+  computed,
+  defineComponent,
+  defineProps,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import { autoSize, getID, randomColor } from "../common";
 import {
   Force,
   Simulation,
@@ -14,14 +21,15 @@ import {
 
 export interface t_props {
   data?: { nodes: t_data_node[]; links: t_data_link[] };
-  initNodeData?: (
-    data: t_data_node,
-    index: number
-  ) => Omit<Partial<t_node>, "id" | "data"> | void;
-  initLinkData?: (
-    data: t_data_link,
-    index: number
-  ) => Omit<Partial<t_link>, "id" | "data" | "source" | "target"> | void;
+  initNodeData?: (props: {
+    data: t_data_node;
+    index: number;
+  }) => Omit<Partial<t_node>, "id" | "data"> | void;
+  initLinkData?: (props: {
+    data: t_data_link;
+    index: number;
+    id: string;
+  }) => Omit<Partial<t_link>, "id" | "data" | "source" | "target"> | void;
   force?: Force<t_node, t_link>[] | Boolean;
   zoomable?: boolean;
 }
@@ -39,6 +47,7 @@ export interface t_data_node {
   r?: number;
 }
 export interface t_data_link {
+  id?: string;
   source: string;
   target: string;
   color?: string;
@@ -67,7 +76,7 @@ export default defineComponent({
 const props = withDefaults(defineProps<t_props>(), {
   data: () => ({ nodes: [], links: [] }),
   force: () => true,
-  zoomable: true,
+  zoomable: false,
 });
 // resize 动态改变svg的viewbox
 const { elementRef: graphEl, widthRef, heightRef } = autoSize();
@@ -79,12 +88,19 @@ const nodeColor = randomColor();
 function initData() {
   const nodes: Map<string, t_node> = new Map();
   const links: Map<string, t_link> = new Map();
+  const gID = getID();
+
   console.info("*** init data ***");
+
   props.data.nodes.forEach((node: t_data_node, index) => {
-    const id = node.id;
+    const id = gID(node.id, {
+      suffix: "node",
+      warn: (preid, id) =>
+        `node data id duplicate: old[${preid}] --> new[${id}]`,
+    });
 
     const init = props.initNodeData;
-    const d = init && init(node, index);
+    const d = init && init({ data: node, index });
 
     nodes.set(id, {
       id: id,
@@ -105,20 +121,17 @@ function initData() {
   });
 
   props.data.links.forEach((link: t_data_link, index) => {
-    const _id = `${link.source}_${link.target}`;
-
-    let id = _id;
-    let count = 0;
-    while (links.has(id)) {
-      count++;
-      id = _id + count;
-    }
+    const id = gID(link.id || `${link.source}_${link.target}`, {
+      suffix: "node",
+      warn: (preid, id) =>
+        `node data id duplicate: old[${preid}] --> new[${id}]`,
+    });
 
     const src = nodes.get(link.source);
     const tar = nodes.get(link.target);
 
     const init = props.initLinkData;
-    const d = init && init(link, index);
+    const d = init && init({ data: link, index, id });
 
     src &&
       tar &&
@@ -181,11 +194,74 @@ function forceBind() {
 
 watch([_data, () => props.force], forceBind, { immediate: true });
 
-function zoom(e: WheelEvent) {
-  if (!props.zoomable) return;
-  console.log(e.offsetX);
-  console.log(e.offsetY);
+const svgTransofrmProps = ref({
+  scale: 1,
+  x: 0,
+  y: 0,
+});
+function zoom(event: WheelEvent) {
+  const svg = graphEl.value;
+  if (!props.zoomable || !svg) return;
+
+  const {
+    scale: oldScale,
+    x: transformX,
+    y: transformY,
+  } = svgTransofrmProps.value;
+  // 计算scale
+  const newScale =
+    oldScale +
+    -event.deltaY *
+      (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) *
+      (event.ctrlKey ? 10 : 1);
+  svgTransofrmProps.value.scale = Math.max(Math.min(newScale, 2), 0.5);
+
+  const SVGRect = svg.getBoundingClientRect();
+  const viewbox = [
+    svg.viewBox.baseVal.x,
+    svg.viewBox.baseVal.y,
+    svg.viewBox.baseVal.width,
+    svg.viewBox.baseVal.height,
+  ];
+  // zoom center 在屏幕坐标系下，需要缩放的中心点相对于svg左上角的偏移量
+  const event2SVGOffsetPos = [
+    event.clientX - SVGRect.x,
+    event.clientY - SVGRect.y,
+  ];
+  // svg的viewbox与实际的width、height的比例
+  // 为了换算出 缩放中心点（屏幕坐标系）在 svg 未缩放平移时对应的(svg坐标系)坐标
+  const svgAutoSizeRatio = Math.max(
+    viewbox[2] / SVGRect.width,
+    viewbox[3] / SVGRect.height
+  );
+
+  // zoom 中心坐标（SVG坐标系，并且未transform时的坐标）
+  const event2SVGPos = [
+    event2SVGOffsetPos[0] * svgAutoSizeRatio,
+    event2SVGOffsetPos[1] * svgAutoSizeRatio,
+  ];
+
+  // 补偿 svg translate的值（要求transform时translate在scale前面）
+  // const event2SVGPosTransformOffset = [
+  //   ( - event2SVGPos[0]) * (newScale - 1),
+  //   ( - event2SVGPos[1]) * (newScale - 1),
+  // ];
+  svgTransofrmProps.value.x = event2SVGPos[0];
+  svgTransofrmProps.value.y = event2SVGPos[1];
+  // svgTransofrmProps.value.x = event2SVGPosTransformOffset[0];
+  // svgTransofrmProps.value.y = event2SVGPosTransformOffset[1];
+
+  console.log("offset:", event2SVGOffsetPos);
+  console.log("ratio:", svgAutoSizeRatio);
+  console.log("scale:", newScale);
+  console.log(event2SVGPosTransformOffset);
 }
+
+const transform = computed(() => {
+  const t = svgTransofrmProps.value;
+  return `translate(${t.x},${t.y}) scale(${t.scale})`;
+  // return `translate(0 0) scale(1)`;
+});
 
 defineExpose({
   _data,
@@ -196,32 +272,34 @@ defineExpose({
 </script>
 
 <template>
-  <svg class="graph" ref="graphEl" @wheel="zoom">
-    <path
-      class="link"
-      v-for="link in _data.links"
-      :d="`M${link[1].source.x},${link[1].source.y}L${link[1].target.x},${link[1].target.y}`"
-      :key="link[1].id"
-      :stroke="link[1].color"
-      :stroke-width="link[1].width"
-      fill="none"
-    ></path>
+  <svg class="graph" ref="graphEl" @wheel.passive="zoom">
+    <g :transform="transform">
+      <path
+        class="link"
+        v-for="link in _data.links"
+        :d="`M${link[1].source.x},${link[1].source.y}L${link[1].target.x},${link[1].target.y}`"
+        :key="link[1].id"
+        :stroke="link[1].color"
+        :stroke-width="link[1].width"
+        fill="none"
+      ></path>
 
-    <g
-      class="node"
-      v-for="node in _data.nodes"
-      :key="node[1].id"
-      :transform="`translate(${node[1].x},${node[1].y})`"
-    >
-      <circle
-        :r="node[1].r"
-        :fill="node[1].fill"
-        :stroke="node[1].borderColor"
-        :stroke-width="node[1].borderWidth"
-      ></circle>
-      <text v-if="node[1].text">
-        {{ node[1].text }}
-      </text>
+      <g
+        class="node"
+        v-for="node in _data.nodes"
+        :key="node[1].id"
+        :transform="`translate(${node[1].x},${node[1].y})`"
+      >
+        <circle
+          :r="node[1].r"
+          :fill="node[1].fill"
+          :stroke="node[1].borderColor"
+          :stroke-width="node[1].borderWidth"
+        ></circle>
+        <text v-if="node[1].text">
+          {{ node[1].text }}
+        </text>
+      </g>
     </g>
   </svg>
 </template>

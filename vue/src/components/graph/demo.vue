@@ -1,21 +1,27 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { Graph, t_data_node } from "../components/index";
+import Graph, { t_data_node } from "./index.vue";
+import { randomColor } from "../common";
 const nodes: t_data_node[] = [];
-for (let i = 0; i < 500; i++) {
+for (let i = 0; i < 2; i++) {
   const node: t_data_node = {
     id: "n" + i,
   };
   nodes.push(node);
   if (i === 0) {
-    node.r = 200;
-    node.fx = node.fy = 0;
-    node.fill = "#00000000";
+    node.r = 6;
+    node.fx = 0;
+    node.fy = 0;
+    node.fill = "#000000";
   }
 }
 
 const graphData = ref<any>({
-  nodes: nodes,
+  nodes: [
+    { id: "n1", r: 5, fx: 300, fy: 300, fill: "#000" },
+    { id: "n2", r: 5, fx: 500, fy: 500 },
+    { id: "n3", r: 5, fx: 0, fy: 0 },
+  ],
   links: [],
 });
 
@@ -30,14 +36,28 @@ function pointermove(e: PointerEvent) {
   node.fy = e.offsetY - graphInstance.heightRef / 2;
   simulation.alpha(0.3).restart();
 }
-function initNodeData(data: t_data_node, index: number) {
+// 为了测试硬加的参数
+function initNodeData({ data }: { data: t_data_node }) {
   if (data.id !== "n0") {
     return {
-      text: String(index),
       r: 30,
     };
   }
   return;
+}
+// 为了测试硬加的参数
+// 默认随机颜色函数
+const linkColor = randomColor();
+function initLinkData({ index }: { index: number }) {
+  return {
+    color: linkColor(index),
+  };
+}
+function click(e: MouseEvent) {
+  console.log(e.clientX);
+  console.log(e.clientY);
+  console.log(e.offsetX);
+  console.log(e.offsetY);
 }
 </script>
 
@@ -46,8 +66,10 @@ function initNodeData(data: t_data_node, index: number) {
     :data="graphData"
     force
     @pointermove="pointermove"
+    @click="click"
     ref="graph"
     :initNodeData="initNodeData"
+    :initLinkData="initLinkData"
     zoomable
   />
 </template>

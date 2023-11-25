@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import Graph from "./demos/Graph.vue";
+import Graph from "./components/graph/demo.vue";
 import { ElButton, ElMenu, ElMenuItem, ElIcon } from "element-plus";
 
-const components = [Graph];
+const components = [
+  {
+    demo: Graph,
+    name: "Graph",
+  },
+];
 const selected = ref<number | undefined>(undefined);
 const isExpend = ref(false);
 </script>
@@ -33,9 +38,9 @@ const isExpend = ref(false);
           >
             <el-menu-item
               v-for="(comp, index) in components"
-              :key="comp.__name"
+              :key="comp.name"
               :index="String(index)"
-              >{{ comp.__name }}</el-menu-item
+              >{{ comp.name }}</el-menu-item
             >
           </el-menu>
         </nav>
@@ -48,9 +53,12 @@ const isExpend = ref(false);
         </nav>
       </aside>
     </div>
-    <main class="main-content">
+    <main
+      class="main-content"
+      style="display: flex; justify-content: center; align-items: center"
+    >
       <section class="full" v-if="selected != null">
-        <component :is="components[selected]"></component>
+        <component :is="components[selected].demo"></component>
       </section>
     </main>
   </div>
