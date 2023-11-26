@@ -1,5 +1,16 @@
 import { onMounted, ref } from "vue";
 
+export function arrayMath<T extends number[] = [number, number]>(
+  arr1: number[],
+  progress: (arr1: number, index: number) => number
+): T {
+  const arr: T = [] as any;
+  for (let i = 0; i < arr1.length; i++) {
+    arr[i] = progress(arr1[i], i);
+  }
+  return arr;
+}
+
 export function autoSize() {
   const elementRef = ref<SVGSVGElement | null>(null);
   const widthRef = ref<number>(0);
@@ -111,6 +122,29 @@ export function getTransform(el: Element): t_zoompan {
   };
 }
 
+export function getSVGInfo(svg: SVGSVGElement) {
+  const SVGRect = svg.getBoundingClientRect();
+  const viewbox = [
+    svg.viewBox.baseVal.x,
+    svg.viewBox.baseVal.y,
+    svg.viewBox.baseVal.width,
+    svg.viewBox.baseVal.height,
+  ];
+
+  // svg的viewbox与实际的width、height的比例
+  // 为了换算出 缩放中心点（屏幕坐标系）在 svg 未缩放平移时对应的(svg坐标系)坐标
+  const rw = viewbox[2] / SVGRect.width;
+  const rh = viewbox[3] / SVGRect.height;
+  const autoSizeRatio = Math.max(rw, rh);
+  return {
+    SVGRect,
+    viewbox,
+    rw,
+    rh,
+    autoSizeRatio,
+  };
+}
+
 // 根据屏幕坐标获取SVG中transform之前的坐标的位置信息
 // clientPos: zoom 的屏幕坐标
 export function getSVGPosition(
@@ -118,44 +152,32 @@ export function getSVGPosition(
   svgEl: SVGSVGElement,
   transform: t_zoompan
 ) {
-  const SVGRect = svgEl.getBoundingClientRect();
-  const viewbox = [
-    svgEl.viewBox.baseVal.x,
-    svgEl.viewBox.baseVal.y,
-    svgEl.viewBox.baseVal.width,
-    svgEl.viewBox.baseVal.height,
-  ];
+  const { SVGRect, viewbox, rw, rh, autoSizeRatio } = getSVGInfo(svgEl);
+
   // zoom center 在屏幕坐标系下，需要缩放的中心点相对于svg左上角的偏移量
   const centerClientPos = [clientPos[0] - SVGRect.x, clientPos[1] - SVGRect.y];
 
-  // svg的viewbox与实际的width、height的比例
-  // 为了换算出 缩放中心点（屏幕坐标系）在 svg 未缩放平移时对应的(svg坐标系)坐标
-  const rw = viewbox[2] / SVGRect.width;
-  const rh = viewbox[3] / SVGRect.height;
-  const svgAutoSizeRatio = Math.max(rw, rh);
-
   // 补偿 svg viewbox和svg 实际大小不一致时 svg的自适应造成的位移
   const autosizeOffsetPX = (SVGRect.width - SVGRect.height) / 2;
-  const isWidth = rw === svgAutoSizeRatio;
+  const isWidth = rw === autoSizeRatio;
   const autosizeOffset = [
-    autosizeOffsetPX * svgAutoSizeRatio * Number(!isWidth),
-    autosizeOffsetPX * svgAutoSizeRatio * Number(isWidth),
+    autosizeOffsetPX * autoSizeRatio * Number(!isWidth),
+    autosizeOffsetPX * autoSizeRatio * Number(isWidth),
   ];
 
   // zoom 中心坐标（SVG坐标系，未transform时的坐标）
-  const centerPos = [
-    // 加号前算出的只是长度
-    centerClientPos[0] * svgAutoSizeRatio + viewbox[0] - autosizeOffset[0],
-    centerClientPos[1] * svgAutoSizeRatio + viewbox[1] - autosizeOffset[1],
-  ];
+  const centerPos = arrayMath(
+    centerClientPos,
+    (a, i) => a * autoSizeRatio + viewbox[i] - autosizeOffset[i]
+  );
 
   // 补偿 svg translate的值（要求transform时translate在scale前面）
   // transform时 translate(-30 120) scale(1.2) 是指 先平移 在缩放，缩放的值不包含之前平移的（因为已经平移过了）
   // zoom 中心坐标（SVG坐标系，transform后的坐标）
-  const centerOriginPos = [
-    (centerPos[0] - transform.x) / transform.scale,
-    (centerPos[1] - transform.y) / transform.scale,
-  ];
+  const centerOriginPos = arrayMath(
+    centerPos,
+    (a) => (a - transform.x) / transform.scale
+  );
 
   return centerOriginPos as [number, number];
 }
@@ -164,10 +186,16 @@ export function zoom(props: {
   scaleOffset: number;
   svg: SVGSVGElement;
   transformEL: Element;
-  clientPos: [number, number]
+  clientPos: [number, number];
   scaleRange?: [number, number];
 }) {
-  const { scaleOffset, transformEL, scaleRange = [0, Infinity], clientPos, svg } = props;
+  const {
+    scaleOffset,
+    transformEL,
+    scaleRange = [0, Infinity],
+    clientPos,
+    svg,
+  } = props;
 
   const { scale: oldScale, x, y } = getTransform(transformEL);
 
@@ -192,4 +220,38 @@ export function zoom(props: {
     x: translateX,
     y: translateY,
   };
+}
+
+export function pan(
+  clientStartPos: [number, number],
+  svg: SVGSVGElement,
+  transformEL: Element,
+  change: (x: number, y: number) => void
+) {
+  const clientPosStart: [number, number] = clientStartPos;
+  const { x, y } = getTransform(transformEL);
+
+  const { autoSizeRatio } = getSVGInfo(svg);
+
+  const signal = new AbortController();
+  function pointermove(event: PointerEvent) {
+    const clientPosMove: [number, number] = [event.clientX, event.clientY];
+
+    const translateOffset = arrayMath<[number, number]>(
+      clientPosMove,
+      (a, i) => a - clientPosStart[i]
+    );
+    change(
+      x + translateOffset[0] * autoSizeRatio,
+      y + translateOffset[1] * autoSizeRatio
+    );
+  }
+  function pointerup() {
+    signal.abort();
+  }
+
+  svg.addEventListener("pointermove", pointermove, {
+    signal: signal.signal,
+  });
+  svg.addEventListener("pointerup", pointerup, { signal: signal.signal });
 }

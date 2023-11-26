@@ -7,7 +7,13 @@ import {
   ref,
   watch,
 } from "vue";
-import { autoSize, getID, randomColor, zoom } from "../common";
+import {
+  autoSize,
+  getID,
+  pan,
+  randomColor,
+  zoom,
+} from "../common";
 import {
   Force,
   Simulation,
@@ -200,26 +206,46 @@ const svgTransofrmProps = ref({
   y: 0,
 });
 
-function wheel(event: WheelEvent) {
+function getCheckSVGTransformElement() {
   const svg = graphEl.value;
-  if (!props.zoomable || !svg) return;
-  const transformGEl = svg.querySelector("g[transform]");
-  if (!transformGEl) return;
+  if (!props.zoomable || !svg) return false;
+  const transformEl = svg.querySelector("g[transform]");
+  if (!transformEl) return false;
+  return {
+    svg,
+    transformEl,
+  };
+}
+
+function wheel(event: WheelEvent) {
+  const el = getCheckSVGTransformElement();
+  if (!el) return;
+
   const scaleOffset =
     -event.deltaY *
     (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) *
     (event.ctrlKey ? 10 : 1);
 
   const { scale, x, y } = zoom({
-    transformEL: transformGEl,
+    transformEL: el.transformEl,
     scaleOffset,
     clientPos: [event.clientX, event.clientY],
-    svg
+    svg: el.svg,
   });
 
   svgTransofrmProps.value.scale = scale;
   svgTransofrmProps.value.x = x;
   svgTransofrmProps.value.y = y;
+}
+
+function pointerdown(event: PointerEvent) {
+  const el = getCheckSVGTransformElement();
+  if (!el) return;
+
+  pan([event.clientX, event.clientY], el.svg, el.transformEl, (x, y) => {
+    svgTransofrmProps.value.x = x;
+    svgTransofrmProps.value.y = y;
+  });
 }
 
 const transform = computed(() => {
@@ -237,7 +263,12 @@ defineExpose({
 </script>
 
 <template>
-  <svg class="graph" ref="graphEl" @wheel.passive="wheel">
+  <svg
+    class="graph"
+    ref="graphEl"
+    @wheel.passive="wheel"
+    @pointerdown="pointerdown"
+  >
     <g :transform="transform">
       <path
         class="link"
