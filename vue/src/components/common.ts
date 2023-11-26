@@ -171,14 +171,14 @@ export function getSVGPosition(
     (a, i) => a * autoSizeRatio + viewbox[i] - autosizeOffset[i]
   );
 
+  const _transform = [transform.x, transform.y];
   // 补偿 svg translate的值（要求transform时translate在scale前面）
   // transform时 translate(-30 120) scale(1.2) 是指 先平移 在缩放，缩放的值不包含之前平移的（因为已经平移过了）
   // zoom 中心坐标（SVG坐标系，transform后的坐标）
   const centerOriginPos = arrayMath(
     centerPos,
-    (a) => (a - transform.x) / transform.scale
+    (a, i) => (a - _transform[i]) / transform.scale
   );
-
   return centerOriginPos as [number, number];
 }
 
@@ -207,7 +207,7 @@ export function zoom(props: {
 
   const newScale = Math.max(
     Math.min(scaleOffset + oldScale, scaleRange[1]),
-    Math.max(scaleRange[0], 0)
+    Math.max(scaleRange[0], 0.1)
   );
   const _scaleOffset = newScale - oldScale;
   // 需要把scale 放大的坐标在已有的位移情况下给补偿回来，所以 [现有平移位置 - 原位置的坐标 * 放大的偏移值]
