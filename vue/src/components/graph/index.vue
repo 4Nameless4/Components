@@ -10,8 +10,12 @@ import {
 import {
   autoSize,
   getID,
+  getTransform,
   pan,
+  pointer,
+  pointerInvert,
   randomColor,
+  t_zoompan,
   zoom,
 } from "../common";
 import {
@@ -200,10 +204,9 @@ function forceBind() {
 
 watch([_data, () => props.force], forceBind, { immediate: true });
 
-const svgTransofrmProps = ref({
+const svgTransofrmProps = ref<t_zoompan>({
   scale: 1,
-  x: 0,
-  y: 0,
+  translate: [0, 0],
 });
 
 function getCheckSVGTransformElement() {
@@ -226,7 +229,7 @@ function wheel(event: WheelEvent) {
     (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) *
     (event.ctrlKey ? 10 : 1);
 
-  const { scale, x, y } = zoom({
+  const { scale, translate } = zoom({
     transformEL: el.transformEl,
     scaleOffset,
     clientPos: [event.clientX, event.clientY],
@@ -234,23 +237,25 @@ function wheel(event: WheelEvent) {
   });
 
   svgTransofrmProps.value.scale = scale;
-  svgTransofrmProps.value.x = x;
-  svgTransofrmProps.value.y = y;
+  svgTransofrmProps.value.translate = translate;
 }
 
 function pointerdown(event: PointerEvent) {
   const el = getCheckSVGTransformElement();
   if (!el) return;
 
-  pan([event.clientX, event.clientY], el.svg, el.transformEl, (x, y) => {
-    svgTransofrmProps.value.x = x;
-    svgTransofrmProps.value.y = y;
+  const pos = pointer([event.clientX, event.clientY], el.svg);
+  console.log(pos);
+  console.log(pointerInvert(getTransform(el.transformEl), pos));
+
+  pan([event.clientX, event.clientY], el.svg, el.transformEl, (translate) => {
+    svgTransofrmProps.value.translate = translate;
   });
 }
 
 const transform = computed(() => {
   const t = svgTransofrmProps.value;
-  return `translate(${t.x},${t.y}) scale(${t.scale})`;
+  return `translate(${t.translate[0]},${t.translate[1]}) scale(${t.scale})`;
 });
 
 defineExpose({

@@ -54,6 +54,11 @@ function initLinkData({ index }: { index: number }) {
   };
 }
 </script>
+<script lang="ts">
+export default {
+  name: "GraphDemo",
+};
+</script>
 
 <template>
   <Graph

@@ -57,9 +57,10 @@ const isExpend = ref(false);
       class="main-content"
       style="display: flex; justify-content: center; align-items: center"
     >
-      <section class="full" v-if="selected != null">
+      <router-view></router-view>
+      <!-- <section class="full" v-if="selected != null">
         <component :is="components[selected].demo"></component>
-      </section>
+      </section> -->
     </main>
   </div>
   <footer></footer>
