@@ -1,7 +1,48 @@
-import { defineConfig } from "vite";
+import { PluginOption, defineConfig } from "vite";
 import path from "path";
 import vue from "@vitejs/plugin-vue";
 import ElementPlus from "unplugin-element-plus/vite";
+import tailwindcss from "tailwindcss";
+import autoprefixer from "autoprefixer";
+import { marked } from "marked";
+import fs from "fs";
+
+function vitePluginMd(): PluginOption {
+  return {
+    name: "my-vite-plugin-md",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        // res.writeHead
+        const url = req.url;
+        if (url.endsWith(".md")) {
+          console.log(url);
+          res.appendHeader("type", "js");
+          const fileStr = fs.readFileSync(url).toString();
+          res.write(`export default const md=${JSON.stringify(marked(fileStr))}`);
+        }
+        // console.log(req.)
+        // if (res.path.endsWith(".md")) {
+        //   res.type = "js";
+        //   const filePath = path.join(process.cwd(), res.path);
+        //   res.body = marked(fs.readFileSync(filePath).toString());
+        // } else {
+        //   await next();
+        // }
+        next();
+      });
+    },
+    transform(src, path) {
+      if (/\.md$/g.test(path)) {
+        console.log(path);
+        // marked().then((d) => console.log(d));
+        // return {
+        //   code: "",
+        // };
+        return `export default ${JSON.stringify(marked(src))}`;
+      }
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -25,5 +66,10 @@ export default defineConfig({
       },
     },
   },
-  plugins: [vue(), ElementPlus({})],
+  plugins: [vue(), ElementPlus({}), vitePluginMd()],
+  css: {
+    postcss: {
+      plugins: [tailwindcss, autoprefixer],
+    },
+  },
 });

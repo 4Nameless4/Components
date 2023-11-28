@@ -1,4 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import Markdown from "./components/markdown/index.vue";
+import md from "../README.md";
+console.log(md);
+</script>
 <template>
-  <div></div>
+  <section><h3>Welcome my componets project!</h3></section>
+  <Markdown :md="md"></Markdown>
 </template>

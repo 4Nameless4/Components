@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import Graph, { t_data_node } from "./index.vue";
+import Graph, { t_mzw_data_node } from "./index.vue";
 import { randomColor } from "../common";
-const nodes: t_data_node[] = [];
+const nodes: t_mzw_data_node[] = [];
 for (let i = 0; i < 2; i++) {
-  const node: t_data_node = {
+  const node: t_mzw_data_node = {
     id: "n" + i,
   };
   nodes.push(node);
@@ -37,7 +37,7 @@ function pointermove(e: PointerEvent) {
   simulation.alpha(0.3).restart();
 }
 // 为了测试硬加的参数
-function initNodeData({ data }: { data: t_data_node }) {
+function initNodeData({ data }: { data: t_mzw_data_node }) {
   if (data.id !== "n0") {
     return {
       r: 30,
@@ -56,7 +56,7 @@ function initLinkData({ index }: { index: number }) {
 </script>
 <script lang="ts">
 export default {
-  name: "GraphDemo",
+  name: "Graph-Demo",
 };
 </script>
 

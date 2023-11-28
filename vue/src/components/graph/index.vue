@@ -7,17 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
-import {
-  autoSize,
-  getID,
-  getTransform,
-  pan,
-  pointer,
-  pointerInvert,
-  randomColor,
-  t_zoompan,
-  zoom,
-} from "../common";
+import { autoSize, getID, pan, randomColor, t_mzw_zoompan, zoom } from "../common";
 import {
   Force,
   Simulation,
@@ -29,22 +19,22 @@ import {
   forceY,
 } from "d3";
 
-export interface t_props {
-  data?: { nodes: t_data_node[]; links: t_data_link[] };
+export interface t_mzw_graph_props {
+  data?: { nodes: t_mzw_data_node[]; links: t_mzw_data_link[] };
   initNodeData?: (props: {
-    data: t_data_node;
+    data: t_mzw_data_node;
     index: number;
-  }) => Omit<Partial<t_node>, "id" | "data"> | void;
+  }) => Omit<Partial<t_mzw_node>, "id" | "data"> | void;
   initLinkData?: (props: {
-    data: t_data_link;
+    data: t_mzw_data_link;
     index: number;
     id: string;
-  }) => Omit<Partial<t_link>, "id" | "data" | "source" | "target"> | void;
-  force?: Force<t_node, t_link>[] | Boolean;
+  }) => Omit<Partial<t_mzw_link>, "id" | "data" | "source" | "target"> | void;
+  force?: Force<t_mzw_node, t_mzw_link>[] | Boolean;
   zoomable?: boolean;
 }
 
-export interface t_data_node {
+export interface t_mzw_data_node {
   id: string;
   x?: number;
   y?: number;
@@ -56,7 +46,7 @@ export interface t_data_node {
   text?: string;
   r?: number;
 }
-export interface t_data_link {
+export interface t_mzw_data_link {
   id?: string;
   source: string;
   target: string;
@@ -64,17 +54,18 @@ export interface t_data_link {
   width?: number;
 }
 
-export interface t_node extends Required<Omit<t_data_node, "fx" | "fy">> {
+export interface t_mzw_node
+  extends Required<Omit<t_mzw_data_node, "fx" | "fy">> {
   fx?: number;
   fy?: number;
-  data: t_data_node;
+  data: t_mzw_data_node;
 }
-export interface t_link
-  extends Required<Omit<t_data_link, "source" | "target">> {
+export interface t_mzw_link
+  extends Required<Omit<t_mzw_data_link, "source" | "target">> {
   id: string;
-  source: t_node;
-  target: t_node;
-  data: t_data_link;
+  source: t_mzw_node;
+  target: t_mzw_node;
+  data: t_mzw_data_link;
 }
 
 export default defineComponent({
@@ -83,7 +74,7 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
-const props = withDefaults(defineProps<t_props>(), {
+const props = withDefaults(defineProps<t_mzw_graph_props>(), {
   data: () => ({ nodes: [], links: [] }),
   force: () => true,
   zoomable: false,
@@ -96,13 +87,13 @@ const nodeColor = randomColor();
 
 // 初始化数据
 function initData() {
-  const nodes: Map<string, t_node> = new Map();
-  const links: Map<string, t_link> = new Map();
+  const nodes: Map<string, t_mzw_node> = new Map();
+  const links: Map<string, t_mzw_link> = new Map();
   const gID = getID();
 
   console.info("*** init data ***");
 
-  props.data.nodes.forEach((node: t_data_node, index) => {
+  props.data.nodes.forEach((node: t_mzw_data_node, index) => {
     const id = gID(node.id, {
       suffix: "node",
       warn: (preid, id) =>
@@ -130,7 +121,7 @@ function initData() {
     });
   });
 
-  props.data.links.forEach((link: t_data_link, index) => {
+  props.data.links.forEach((link: t_mzw_data_link, index) => {
     const id = gID(link.id || `${link.source}_${link.target}`, {
       suffix: "node",
       warn: (preid, id) =>
@@ -167,7 +158,7 @@ function initData() {
 const _data = computed(initData);
 
 // force bind
-let simulation: Simulation<t_node, t_link> | null = null as any;
+let simulation: Simulation<t_mzw_node, t_mzw_link> | null = null as any;
 let forceCount = 0;
 function forceBind() {
   console.info("*** force bind ***");
@@ -180,8 +171,8 @@ function forceBind() {
     return;
   } else if (!Array.isArray(forces)) {
     forces = [
-      forceCollide<t_node>().radius((d) => d.r + 5),
-      forceManyBody<t_node>().strength((d) => d.r * -6),
+      forceCollide<t_mzw_node>().radius((d) => d.r + 5),
+      forceManyBody<t_mzw_node>().strength((d) => d.r * -6),
       forceX(),
       forceY(),
       forceLink(Array.from(_data.value.links.values())),
@@ -204,7 +195,7 @@ function forceBind() {
 
 watch([_data, () => props.force], forceBind, { immediate: true });
 
-const svgTransofrmProps = ref<t_zoompan>({
+const svgTransofrmProps = ref<t_mzw_zoompan>({
   scale: 1,
   translate: [0, 0],
 });
@@ -243,10 +234,6 @@ function wheel(event: WheelEvent) {
 function pointerdown(event: PointerEvent) {
   const el = getCheckSVGTransformElement();
   if (!el) return;
-
-  const pos = pointer([event.clientX, event.clientY], el.svg);
-  console.log(pos);
-  console.log(pointerInvert(getTransform(el.transformEl), pos));
 
   pan([event.clientX, event.clientY], el.svg, el.transformEl, (translate) => {
     svgTransofrmProps.value.translate = translate;

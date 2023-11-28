@@ -1,9 +1,15 @@
 import { createApp } from "vue";
+import "./tailwind.css"
 import "./style.css";
 import App from "./App.vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import router from "./router";
+import routes from "./routes";
+import { createRouter, createWebHashHistory } from "vue-router";
 
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes,
+});
 // 5. 创建并挂载根实例
 const app = createApp(App);
 //确保 _use_ 路由实例使

@@ -94,13 +94,13 @@ export function getID() {
   };
 }
 
-export type t_zoompan = {
+export type t_mzw_zoompan = {
   scale: number;
   translate: [number, number];
 };
 
 // 获取给定Element的transform值（translate与scale）
-export function getTransform(el: Element): t_zoompan {
+export function getTransform(el: Element): t_mzw_zoompan {
   const transform = el.getAttribute("transform");
   if (!transform)
     return {
@@ -173,7 +173,10 @@ export function pointer(clientPos: [number, number], svgEl: SVGSVGElement) {
   return centerPos;
 }
 
-export function pointerInvert(transform: t_zoompan, pointer: [number, number]) {
+export function pointerInvert(
+  transform: t_mzw_zoompan,
+  pointer: [number, number]
+) {
   // 补偿 svg translate的值（要求transform时translate在scale前面）
   // transform时 translate(-30 120) scale(1.2) 是指 先平移 在缩放，缩放的值不包含之前平移的（因为已经平移过了）
   // zoom 中心坐标（SVG坐标系，transform后的坐标）
@@ -197,7 +200,7 @@ export function zoom(props: {
   transformEL: Element;
   clientPos: [number, number];
   scaleRange?: [number, number];
-}): t_zoompan {
+}): t_mzw_zoompan {
   const { scaleOffset, transformEL, scaleRange, clientPos, svg } = props;
 
   const transform = getTransform(transformEL);

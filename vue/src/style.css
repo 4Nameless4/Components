@@ -24,5 +24,4 @@ body {
   display: flex;
   flex-direction: column;
   --header-size: 2rem;
-  /* background-color: aliceblue; */
 }

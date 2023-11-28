@@ -1,47 +1,57 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import Graph from "./components/graph/demo.vue";
+import routes from "./routes";
 import { ElButton, ElMenu, ElMenuItem, ElIcon } from "element-plus";
+import { RouterLink } from "vue-router";
 
-const components = [
-  {
-    demo: Graph,
-    name: "Graph",
-  },
-];
-const selected = ref<number | undefined>(undefined);
+const list: typeof routes = [];
+routes.forEach((d) => {
+  if (d.path === "/") return;
+  const name = d.name || "Unkown";
+  list.push({
+    ...d,
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+  });
+});
+
 const isExpend = ref(false);
 </script>
 
 <template>
   <header>
-    <div class="header">
+    <div class="header bg-slate-300">
       <a class="home">
-        <el-icon> <House /> </el-icon>
+        <el-icon>
+          <router-link to="/"><House /></router-link>
+        </el-icon>
       </a>
       <el-button class="menubtn" @click="isExpend = !isExpend">
-        <el-icon> <Menu /> </el-icon
-      ></el-button>
+        <el-icon>
+          <Menu />
+        </el-icon>
+      </el-button>
     </div>
   </header>
   <div class="page-wrapper">
     <div class="aside-group">
-      <aside :class="{ sidebar: true, expend: isExpend }">
+      <aside
+        :class="{
+          sidebar: true,
+          expend: isExpend,
+          'bg-neutral-400': true,
+          'shadow-lg': true,
+          'rounded-r-md': true,
+        }"
+      >
         <nav>
-          <el-menu
-            @select="
-              (index) => {
-                selected = Number(index);
-                isExpend = false;
-              }
-            "
-          >
+          <el-menu router @select="() => (isExpend = false)">
             <el-menu-item
-              v-for="(comp, index) in components"
-              :key="comp.name"
-              :index="String(index)"
-              >{{ comp.name }}</el-menu-item
+              v-for="route in list"
+              :key="route.name"
+              :index="route.path"
             >
+              {{ route.name }}
+            </el-menu-item>
           </el-menu>
         </nav>
       </aside>
@@ -53,14 +63,8 @@ const isExpend = ref(false);
         </nav>
       </aside>
     </div>
-    <main
-      class="main-content"
-      style="display: flex; justify-content: center; align-items: center"
-    >
+    <main class="main-content">
       <router-view></router-view>
-      <!-- <section class="full" v-if="selected != null">
-        <component :is="components[selected].demo"></component>
-      </section> -->
     </main>
   </div>
   <footer></footer>
@@ -82,7 +86,6 @@ nav {
 .header .home {
   width: var(--header-size);
   height: var(--header-size);
-  border: 1px solid;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -102,7 +105,6 @@ nav {
 }
 .main-content {
   height: 100%;
-  border: 1px solid black;
 }
 .aside-group {
   display: contents;
@@ -119,7 +121,6 @@ nav {
   transition: 0.3s linear;
   transform: translateX(-100%);
   will-change: transform;
-  border: 1px solid;
 }
 .toc {
   width: 0;
