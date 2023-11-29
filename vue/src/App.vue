@@ -5,9 +5,12 @@ import { ElButton, ElMenu, ElMenuItem, ElIcon } from "element-plus";
 import { RouterLink } from "vue-router";
 
 const list: typeof routes = [];
-routes.forEach((d) => {
+routes.forEach((d, index) => {
   if (d.path === "/") return;
-  const name = d.name || "Unkown";
+  let name = `Unkown-${index}`;
+  if (typeof d.name === "string") {
+    name = d.name;
+  }
   list.push({
     ...d,
     name: name.charAt(0).toUpperCase() + name.slice(1),
@@ -20,7 +23,7 @@ const isExpend = ref(false);
 <template>
   <header>
     <div class="header bg-slate-300">
-      <a class="home">
+      <a class="home ring-1 ring-blue-500/50">
         <el-icon>
           <router-link to="/"><House /></router-link>
         </el-icon>
@@ -63,7 +66,7 @@ const isExpend = ref(false);
         </nav>
       </aside>
     </div>
-    <main class="main-content">
+    <main class="main-content overflow-auto p-8">
       <router-view></router-view>
     </main>
   </div>

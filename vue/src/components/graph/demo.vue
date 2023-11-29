@@ -1,32 +1,31 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import Graph, { t_mzw_data_node } from "./index.vue";
+import Graph, { t_mzw_data_link, t_mzw_data_node } from "./index.vue";
 import { randomColor } from "../common";
 const nodes: t_mzw_data_node[] = [];
-for (let i = 0; i < 2; i++) {
+const links: t_mzw_data_link[] = [];
+for (let i = 0; i < 500; i++) {
   const node: t_mzw_data_node = {
     id: "n" + i,
   };
   nodes.push(node);
   if (i === 0) {
-    node.r = 6;
+    node.r = 200;
     node.fx = 0;
     node.fy = 0;
-    node.fill = "#000000";
+    node.fill = "#00000000";
   }
 }
 
 const graphData = ref<any>({
-  nodes: [
-    { id: "n1", r: 5, fx: 300, fy: 300, fill: "#000" },
-    { id: "n2", r: 5, fx: 500, fy: 500 },
-    { id: "n3", r: 5, fx: 0, fy: 0 },
-  ],
-  links: [],
+  nodes,
+  links,
 });
 
 const graph = ref<null | InstanceType<typeof Graph>>(null);
 function pointermove(e: PointerEvent) {
+  //! TODO 
+  // zoom, position error!
   const graphInstance = graph.value;
   if (!graphInstance) return;
   const node = graphInstance._data.nodes.get("n0");

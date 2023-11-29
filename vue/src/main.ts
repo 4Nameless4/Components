@@ -4,10 +4,10 @@ import "./style.css";
 import App from "./App.vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import routes from "./routes";
-import { createRouter, createWebHashHistory } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(),
   routes,
 });
 // 5. 创建并挂载根实例

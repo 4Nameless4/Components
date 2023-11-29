@@ -12,6 +12,7 @@
     "@element-plus/icons-vue": "^2.1.0",
     "d3": "^7.8.5",
     "element-plus": "^2.4.2",
+    "github-markdown-css": "^5.4.0",
     "vue": "^3.3.4",
     "vue-router": "4"
   },
