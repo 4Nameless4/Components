@@ -194,6 +194,22 @@ export function scaleTo(
   return Math.max(Math.min(to, scaleRange[1]), Math.max(scaleRange[0], 0.1));
 }
 
+export function svgPointerInvert(props: {
+  svg: SVGSVGElement;
+  transformEL: Element;
+  clientPos: [number, number];
+}) {
+  const { transformEL, clientPos, svg } = props;
+  const transform = getTransform(transformEL);
+  const svgPointer = pointer(clientPos, svg);
+  const svgPointerTransform = pointerInvert(transform, svgPointer);
+  return {
+    transform,
+    svgPointer,
+    svgPointerTransform,
+  };
+}
+
 export function zoom(props: {
   scaleOffset: number;
   svg: SVGSVGElement;
@@ -203,12 +219,11 @@ export function zoom(props: {
 }): t_mzw_zoompan {
   const { scaleOffset, transformEL, scaleRange, clientPos, svg } = props;
 
-  const transform = getTransform(transformEL);
-
-  const svgPointer = pointer(clientPos, svg);
-  const svgPointerTransform = pointerInvert(transform, svgPointer);
-
-  // const originPosition = getSVGPosition(clientPos, svg, transform);
+  const { transform, svgPointerTransform } = svgPointerInvert({
+    clientPos,
+    svg,
+    transformEL,
+  });
 
   const to = scaleTo(scaleOffset + transform.scale, scaleRange);
 

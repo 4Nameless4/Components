@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
 import {
   computed,
   defineComponent,
@@ -7,7 +7,14 @@ import {
   ref,
   watch,
 } from "vue";
-import { autoSize, getID, pan, randomColor, t_mzw_zoompan, zoom } from "../common";
+import {
+  autoSize,
+  getID,
+  pan,
+  randomColor,
+  t_mzw_zoompan,
+  zoom,
+} from "../common";
 import {
   Force,
   Simulation,
@@ -31,7 +38,7 @@ export interface t_mzw_graph_props {
     id: string;
   }) => Omit<Partial<t_mzw_link>, "id" | "data" | "source" | "target"> | void;
   force?: Force<t_mzw_node, t_mzw_link>[] | Boolean;
-  zoomable?: boolean;
+  zoompan?: boolean;
 }
 
 export interface t_mzw_data_node {
@@ -68,19 +75,14 @@ export interface t_mzw_link
   data: t_mzw_data_link;
 }
 
-export default defineComponent({
-  name: "Graph",
-});
-</script>
-
-<script setup lang="ts">
 const props = withDefaults(defineProps<t_mzw_graph_props>(), {
   data: () => ({ nodes: [], links: [] }),
   force: () => true,
-  zoomable: false,
+  zoompan: false,
 });
 // resize 动态改变svg的viewbox
 const { elementRef: graphEl, widthRef, heightRef } = autoSize();
+const transformEL = ref<null | SVGElement>(null);
 
 // 默认随机颜色函数
 const nodeColor = randomColor();
@@ -202,7 +204,7 @@ const svgTransofrmProps = ref<t_mzw_zoompan>({
 
 function getCheckSVGTransformElement() {
   const svg = graphEl.value;
-  if (!props.zoomable || !svg) return false;
+  if (!props.zoompan || !svg) return false;
   const transformEl = svg.querySelector("g[transform]");
   if (!transformEl) return false;
   return {
@@ -251,6 +253,12 @@ defineExpose({
   widthRef,
   heightRef,
   graphEl,
+  transformEL,
+});
+</script>
+<script lang="ts">
+export default defineComponent({
+  name: "Graph",
 });
 </script>
 
@@ -258,10 +266,10 @@ defineExpose({
   <svg
     class="graph"
     ref="graphEl"
-    @wheel.passive="wheel"
+    @wheel.prevent="wheel"
     @pointerdown="pointerdown"
   >
-    <g :transform="transform">
+    <g :transform="transform" ref="transformEL">
       <path
         class="link"
         v-for="link in _data.links"

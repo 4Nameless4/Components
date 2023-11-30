@@ -22,18 +22,16 @@ const isExpend = ref(false);
 
 <template>
   <header>
-    <div class="header bg-slate-300">
-      <a class="home ring-1 ring-blue-500/50">
-        <el-icon>
-          <router-link to="/"><House /></router-link>
-        </el-icon>
-      </a>
-      <el-button class="menubtn" @click="isExpend = !isExpend">
-        <el-icon>
-          <Menu />
-        </el-icon>
-      </el-button>
-    </div>
+    <a class="home ring-1 ring-blue-500/50">
+      <el-icon>
+        <router-link to="/"><House /></router-link>
+      </el-icon>
+    </a>
+    <el-button class="menubtn" @click="isExpend = !isExpend">
+      <el-icon>
+        <Menu />
+      </el-icon>
+    </el-button>
   </header>
   <div class="page-wrapper">
     <div class="aside-group">
@@ -41,7 +39,6 @@ const isExpend = ref(false);
         :class="{
           sidebar: true,
           expend: isExpend,
-          'bg-neutral-400': true,
           'shadow-lg': true,
           'rounded-r-md': true,
         }"
@@ -66,7 +63,7 @@ const isExpend = ref(false);
         </nav>
       </aside>
     </div>
-    <main class="main-content overflow-auto p-8">
+    <main class="main-content">
       <router-view></router-view>
     </main>
   </div>
@@ -76,17 +73,24 @@ const isExpend = ref(false);
 <style scoped>
 aside {
   overflow: hidden;
+  background-image: linear-gradient(
+    45deg,
+    #272727,
+    rgb(215 212 212),
+    rgb(199 210 223)
+  );
 }
 nav {
   list-style: none;
 }
-.header {
+header {
   --padding-content: 0.5rem;
   display: flex;
   justify-content: space-between;
   padding: var(--padding-content);
+  background-image: linear-gradient(45deg, #efefef, #9ca5b5, #474545);
 }
-.header .home {
+header .home {
   width: var(--header-size);
   height: var(--header-size);
   border-radius: 50%;
@@ -94,10 +98,10 @@ nav {
   justify-content: center;
   align-items: center;
 }
-.header .home:hover {
+header .home:hover {
   cursor: pointer;
 }
-.header .menubtn {
+header .menubtn {
   width: var(--header-size);
   height: var(--header-size);
 }
@@ -150,7 +154,7 @@ nav {
   .main-content {
     flex: 1;
   }
-  .header .menubtn {
+  header .menubtn {
     display: none;
   }
 }

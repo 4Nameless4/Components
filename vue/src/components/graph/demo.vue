@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import Graph, { t_mzw_data_link, t_mzw_data_node } from "./index.vue";
-import { randomColor } from "../common";
+import { randomColor, svgPointerInvert } from "../common";
+import md from "./README.md";
+import { Markdown } from "..";
+
 const nodes: t_mzw_data_node[] = [];
 const links: t_mzw_data_link[] = [];
 for (let i = 0; i < 500; i++) {
@@ -24,15 +27,21 @@ const graphData = ref<any>({
 
 const graph = ref<null | InstanceType<typeof Graph>>(null);
 function pointermove(e: PointerEvent) {
-  //! TODO 
-  // zoom, position error!
   const graphInstance = graph.value;
   if (!graphInstance) return;
   const node = graphInstance._data.nodes.get("n0");
   const simulation = graphInstance.simulation;
-  if (!node || !simulation) return;
-  node.fx = e.offsetX - graphInstance.widthRef / 2;
-  node.fy = e.offsetY - graphInstance.heightRef / 2;
+  const svg = graphInstance.graphEl;
+  const transformEL = graphInstance.transformEL;
+  if (!node || !simulation || !svg || !transformEL) return;
+  let { svgPointerTransform: p } = svgPointerInvert({
+    clientPos: [e.clientX, e.clientY],
+    svg,
+    transformEL,
+  });
+
+  node.fx = p[0];
+  node.fy = p[1];
   simulation.alpha(0.3).restart();
 }
 // 为了测试硬加的参数
@@ -60,13 +69,16 @@ export default {
 </script>
 
 <template>
-  <Graph
-    :data="graphData"
-    force
-    @pointermove="pointermove"
-    ref="graph"
-    :initNodeData="initNodeData"
-    :initLinkData="initLinkData"
-    zoomable
-  />
+  <section class="view">
+    <Graph
+      :data="graphData"
+      force
+      @pointermove="pointermove"
+      ref="graph"
+      :initNodeData="initNodeData"
+      :initLinkData="initLinkData"
+      zoompan
+    />
+  </section>
+  <Markdown :mdHTML="md"></Markdown>
 </template>
