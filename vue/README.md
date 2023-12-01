@@ -4,12 +4,14 @@ Study & Verify what you want for VUE
 
 ## Package & plugin
 
-1. Vue + Vite + Typescript
-2. Vue Router
-3. D3js
-4. Element plus
-6. marked
-7. tailwindcss
+1. [Vue](https://vuejs.org)
+2. [Vite](https://vitejs.dev)
+3. [Typescript](https://www.typescriptlang.org)
+4. [Vue Router](https://router.vuejs.org)
+5. [D3js](https://d3js.org)
+6. [Element plus](https://element-plus.org)
+7. [marked](https://marked.js.org/)
+8. [tailwindcss](https://www.tailwindcss.cn)
 
 ## Components
 
