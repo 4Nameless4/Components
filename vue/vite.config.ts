@@ -5,14 +5,14 @@ import ElementPlus from "unplugin-element-plus/vite";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 import hljs from "highlight.js";
-import { Marked, Renderer } from "marked";
+import { Marked } from "marked";
 import { markedHighlight } from "marked-highlight";
 import fs from "fs";
 
 const marked = new Marked(
   markedHighlight({
     langPrefix: "hljs language-",
-    highlight(code, lang) {
+    highlight(code) {
       // const language = hljs.getLanguage(lang) ? lang : "plaintext";
       // console.log(language)
       // return hljs.highlight(code, { language }).value;
@@ -22,7 +22,7 @@ const marked = new Marked(
 );
 
 function formatMD2HTML(src: string) {
-  let html = marked.parse(src);
+  let html = marked.parse(src).toString();
   return `export default ${JSON.stringify(html)}`;
 }
 
