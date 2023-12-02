@@ -21,7 +21,7 @@ const routes: RouteRecordRaw[] = [
     name: "markdown",
   },
   // {
-  //   path: "/test/:id",
+  //   path: "/test",
   //   component: Test,
   //   name: "test",
   //   props: (route) => ({

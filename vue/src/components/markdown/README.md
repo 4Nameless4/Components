@@ -1,6 +1,6 @@
 # Markdown Vue Component
 
-- prop: mdHTML
+### prop: mdHTML
 
 > Pass in HTML format string;
 
@@ -18,7 +18,7 @@ import md from "./README.md";
 </template>
 ```
 
-- prop: mdStr
+### prop: mdStr
 
 > Pass in markdown format string;
 

@@ -64,13 +64,23 @@ const isExpend = ref(false);
       </aside>
     </div>
     <main class="main-content">
-      <router-view></router-view>
+      <router-view v-slot="{ Component }">
+        <Transition name="fade">
+          <component :is="Component"></component>
+        </Transition>
+      </router-view>
     </main>
   </div>
   <footer></footer>
 </template>
 
 <style scoped>
+.fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+}
 aside {
   overflow: hidden;
   background-image: linear-gradient(

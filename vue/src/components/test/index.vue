@@ -1,6 +1,22 @@
 <script lang="ts">
 export default {
   name: "Test",
+  beforeRouteEnter(to, from) {
+    console.log(to);
+    console.log(from);
+    // setTimeout(() => {
+    //   next((vm) => {
+    //       console.log(vm);
+    //   });
+    // }, 5000);
+    // return false
+  },
+  data: () => {
+    return {
+      at: 1,
+    };
+  },
+  expose: ["at"],
 };
 </script>
 <script setup lang="ts">
@@ -17,6 +33,6 @@ defineProps({
 </script>
 <template>
   <div>
-    {{ id || "null" }}
+    {{ "Test" }}
   </div>
 </template>
