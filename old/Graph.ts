@@ -1056,4 +1056,4 @@ export class Graph<NodeOriginDatum, LinkOriginDatum> extends Component<
   // ************* Render *************
 }
 
-customElements.define("mzw-graph", Graph);
+customElements.define("nameless4-graph", Graph);
