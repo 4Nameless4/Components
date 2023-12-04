@@ -6,8 +6,8 @@
   "author": "4Nameless4",
   "publishConfig": {},
   "scripts": {
-    "build": "node rollup.config.js",
-    "dev": "node rollup.config.js"
+    "build": "rimraf dist && rollup --config rollup.config.ts --configPlugin typescript",
+    "dev": "pnpm run build -w"
   },
   "repository": {
     "type": "git",
@@ -19,7 +19,15 @@
   },
   "homepage": "https://github.com/4Nameless4/Components#readme",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.5",
+    "@types/node": "^20.10.3",
     "rollup": "^4.6.1",
+    "tslib": "^2.6.2",
     "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "rimraf": "^5.0.5"
   }
 }
