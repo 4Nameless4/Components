@@ -1,7 +1,7 @@
 import { RouteRecordRaw } from "vue-router";
 import Graph from "./components/graph/demo.vue";
 import Markdown from "./components/markdown/demo.vue";
-import Test from "./components/test/index.vue";
+// import Test from "./components/test/index.vue";
 import Home from "./Home.vue";
 
 const routes: RouteRecordRaw[] = [
