@@ -1,16 +1,5 @@
 import { onMounted, ref } from "vue";
 
-export function arrayMath<T extends number[] = [number, number]>(
-  arr1: number[],
-  progress: (arr1: number, index: number) => number
-): T {
-  const arr: T = [] as any;
-  for (let i = 0; i < arr1.length; i++) {
-    arr[i] = progress(arr1[i], i);
-  }
-  return arr;
-}
-
 export function autoSize() {
   const elementRef = ref<SVGSVGElement | null>(null);
   const widthRef = ref<number>(0);
@@ -162,10 +151,9 @@ export function pointer(clientPos: [number, number], svgEl: SVGSVGElement) {
   const autosizeOffset = [offset * Number(!isWidth), offset * Number(isWidth)];
 
   // zoom 中心坐标（SVG坐标系，未transform时的坐标）
-  const centerPos = arrayMath(
-    centerClientPos,
-    (a, i) =>
-      a * autoSizeRatio +
+  const centerPos = centerClientPos.map(
+    (d, i) =>
+      d * autoSizeRatio +
       viewbox[i] -
       ((autoSizeRatio !== 1 && autosizeOffset[i]) || 0)
   );
@@ -180,9 +168,8 @@ export function pointerInvert(
   // 补偿 svg translate的值（要求transform时translate在scale前面）
   // transform时 translate(-30 120) scale(1.2) 是指 先平移 在缩放，缩放的值不包含之前平移的（因为已经平移过了）
   // zoom 中心坐标（SVG坐标系，transform后的坐标）
-  const centerOriginPos = arrayMath(
-    pointer,
-    (a, i) => (a - transform.translate[i]) / transform.scale
+  const centerOriginPos = pointer.map(
+    (d, i) => (d - transform.translate[i]) / transform.scale
   );
   return centerOriginPos as [number, number];
 }
@@ -256,10 +243,7 @@ export function pan(
   function pointermove(event: PointerEvent) {
     const clientPosMove: [number, number] = [event.clientX, event.clientY];
 
-    const translateOffset = arrayMath<[number, number]>(
-      clientPosMove,
-      (a, i) => a - clientPosStart[i]
-    );
+    const translateOffset = clientPosMove.map((d, i) => d - clientPosStart[i]);
     change([
       translate[0] + translateOffset[0] * autoSizeRatio,
       translate[1] + translateOffset[1] * autoSizeRatio,
