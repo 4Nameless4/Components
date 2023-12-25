@@ -1,3 +1,9 @@
-.app {
-  color: antiquewhite;
+.main {
+  background-color: #e3e3e3;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  grid-template-rows: 1fr;
 }

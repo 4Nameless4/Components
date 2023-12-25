@@ -1,1 +1,3 @@
-export * from './widget1/index'
+"use strict";
+
+export * as Graph from "./graph";

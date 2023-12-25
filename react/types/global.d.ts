@@ -1,5 +1,5 @@
 // CSS modules
-type CSSModuleClasses = { readonly [key: string]: string };
+type CSSModuleClasses = Required<Record<string, string>>;
 
 declare module "*.module.css" {
   const classes: CSSModuleClasses;
@@ -43,3 +43,9 @@ declare module "*.styl" {}
 declare module "*.stylus" {}
 declare module "*.pcss" {}
 declare module "*.sss" {}
+declare module "*.md" {
+  const classes: string;
+  export default classes;
+}
+
+declare module "rollup-plugin-serve";

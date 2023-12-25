@@ -1,11 +1,24 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
-import './style.css'
-console.log("aaaaaaaaaaa")
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import { Router } from "./react-router";
+import type { t_routes } from "./router";
+import GraphDemo from "./graph/demo";
+import "./style.css";
+import "github-markdown-css/github-markdown.css";
+import "highlight.js/styles/stackoverflow-light.css";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+const routes: t_routes = {
+  graph: {
+    name: "Graph",
+    page: GraphDemo,
+  },
+};
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <Router routes={routes}>
+      <App />
+    </Router>
+  </StrictMode>
+);

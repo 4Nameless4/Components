@@ -1,3 +1,16 @@
-.notModule {
-  color: antiquewhite;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+#root {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.full {
+  width: 100%;
+  height: 100%;
 }
