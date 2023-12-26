@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import Graph, { t_mzw_data_link, t_mzw_data_node } from "./index.vue";
-import { randomColor, svgPointerInvert } from "../common";
+import { randomColor, svgPointerInvert } from "nameless4-common";
 import md from "./README.md";
 import { Markdown } from "..";
 

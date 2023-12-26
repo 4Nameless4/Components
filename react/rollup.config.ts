@@ -14,14 +14,13 @@ const isProduction = process.env.NODE_ENV !== "development";
 const NODE_ENV = isProduction ? "production" : "development";
 process.env.NODE_ENV = NODE_ENV;
 
-const sourceMap = !isProduction;
 const input = isProduction ? "src/index.ts" : "./public/index.html";
 
 const output: OutputOptions = {
   dir: "dist",
   format: "esm",
   entryFileNames: "index.mjs",
-  sourcemap: sourceMap,
+  sourcemap: !isProduction && "inline",
 };
 
 const marked = new Marked(
@@ -39,6 +38,8 @@ const marked = new Marked(
 const rollupPlugins: RollupOptions["plugins"] = [
   !isProduction && cleanOutputPlugin(),
   plugins.entryHTMLResolve(),
+  nodeResolve(),
+  commonjs(),
   plugins.postcssResolve({ inject: isProduction }),
   !isProduction && plugins.publicResolve(),
   {
@@ -60,11 +61,7 @@ const rollupPlugins: RollupOptions["plugins"] = [
       "process.env.NODE_ENV": `"${NODE_ENV}"`,
     },
   }),
-  nodeResolve(),
-  commonjs(),
-  typescript({
-    sourceMap,
-  }),
+  typescript(),
   json(),
 ];
 

@@ -7,14 +7,8 @@ import {
   ref,
   watch,
 } from "vue";
-import {
-  autoSize,
-  getID,
-  pan,
-  randomColor,
-  t_mzw_zoompan,
-  zoom,
-} from "../common";
+import { autoSize } from "../common";
+import { getID, pan, randomColor, t_mzw_zoompan, zoom } from "nameless4-common";
 import {
   Force,
   Simulation,

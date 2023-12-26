@@ -1,51 +1,93 @@
-import { useEffect, useMemo, useState } from "react";
-// import type { Force } from "d3";
-// import { forceSimulation } from "d3";
-import { getID, randomColor } from "nameless4-common";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Force,
+  Simulation,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  forceX,
+  forceY,
+} from "d3-force";
+import { getID, pan, randomColor, zoom } from "nameless4-common";
+import {
+  GraphDefaultProps,
+  getPos,
+  t_force,
   t_graph_render_props,
   t_link,
   t_link_base,
+  t_link_map,
+  t_link_style,
   t_node,
   t_node_base,
+  t_node_map,
+  t_node_position,
+  t_node_positions,
+  t_node_style,
 } from "./types";
 
-// *********************  SVG
-function renderNode(node: t_node) {
-  Object.assign(node);
+function renderNode(node: t_node, positions: t_node_positions) {
+  const pos = getPos(positions[node.id]);
   return (
-    <g key={node.id}>
-      <circle></circle>
+    <g key={node.id} transform={`translate(${pos[0]} ${pos[1]})`}>
+      <circle
+        r={node.style.r}
+        fill={node.style.fill}
+        stroke={node.style.borderColor}
+        strokeWidth={node.style.borderWidth}
+      ></circle>
+      <text>{node.style.text}</text>
     </g>
   );
 }
-function renderLink(link: t_link) {
-  Object.assign(link);
-  return <path key={link.id}></path>;
+function renderNodes(nodes: t_node_map, positions: t_node_positions) {
+  const nodesEl: JSX.Element[] = [];
+  nodes.forEach((d) => {
+    nodesEl.push(renderNode(d, positions));
+  });
+  return nodesEl;
 }
-// function getStyles<D, P extends Record<string, unknown>>(
-//   data: D,
-//   styles: P | ((data: D) => P)
-// ) {
-//   let result: Record<string, unknown> = {};
-//   if (typeof styles === "function") {
-//     result = styles(data);
-//   } else {
-//     result = styles;
-//   }
-//   return result;
-// }
-function initData<N extends t_node_base, L extends t_link_base>(
-  _nodes: N[],
-  _links: L[]
+function renderLink(link: t_link, positions: t_node_positions) {
+  const sPos = getPos(positions[link.source]);
+  const tPos = getPos(positions[link.target]);
+  return (
+    <path
+      key={link.id}
+      stroke={link.style.color}
+      strokeWidth={link.style.width}
+      d={`M${sPos[0]} ${sPos[1]}L${tPos[0]} ${tPos[1]}`}
+    ></path>
+  );
+}
+function renderLinks(
+  links: t_link_map,
+  positions: t_node_positions,
+  nodes: t_node_map
 ) {
-  const nodes = new Map<string, t_node<N>>();
-  const links = new Map<string, t_link<N, L>>();
-
+  const linksEl: JSX.Element[] = [];
+  links.forEach((d) => {
+    if (!nodes.has(d.source) || !nodes.has(d.target)) return;
+    linksEl.push(renderLink(d, positions));
+  });
+  return linksEl;
+}
+function getStyles<D, P extends t_link_style | t_node_style>(
+  data: D,
+  styles: P | ((data: D) => P)
+) {
+  let result: unknown = {};
+  if (typeof styles === "function") {
+    result = styles(data);
+  } else {
+    result = styles;
+  }
+  return result;
+}
+function initNodeData<N extends t_node_base>(_nodes: N[]) {
+  const nodes: t_node_map<N> = new Map();
   const gID = getID();
-
   const nodeColor = randomColor();
-
   _nodes.forEach((node) => {
     const id = gID(node.id, {
       suffix: "node",
@@ -57,9 +99,6 @@ function initData<N extends t_node_base, L extends t_link_base>(
       id: id,
       data: node,
 
-      x: Math.random() * 1000 - 500,
-      y: Math.random() * 1000 - 500,
-
       style: {
         fill: nodeColor(id) || "",
         borderColor: "#000000",
@@ -70,89 +109,226 @@ function initData<N extends t_node_base, L extends t_link_base>(
     };
     nodes.set(id, nodeData);
   });
+  return nodes;
+}
+function initLinkData<L extends t_link_base>(_links: L[]) {
+  const links: t_link_map<L> = new Map();
+  const gID = getID();
 
   _links.forEach((link) => {
     const id = gID(link.id || `${link.source}_${link.target}`, {
-      suffix: "node",
+      suffix: "link",
       warn: (preid, id) =>
-        `node data id duplicate: old[${preid}] --> new[${id}]`,
+        `link data id duplicate: old[${preid}] --> new[${id}]`,
     });
 
-    const src = nodes.get(link.source);
-    const tar = nodes.get(link.target);
-
-    if (!src || !tar) return;
-    const linkData: t_link<N, L> = {
+    const linkData: t_link<L> = {
       id: id,
       data: link,
 
-      source: src,
-      target: tar,
+      source: link.source,
+      target: link.target,
 
       style: { color: "#000", width: 3 },
     };
     links.set(id, linkData);
   });
+  return links;
+}
+function forceBind<
+  N extends t_node_base = t_node_base,
+  L extends t_link_base = t_link_base
+>(
+  simulation: Simulation<t_node_position, t_link_base>,
+  forces: t_force<N, L>,
+  forceCount: number,
+  nodes: t_node_map<N>,
+  links: t_link_map<L>
+) {
+  let cnt = 0;
+  let _forces: Force<t_node_position, t_link<L>>[] = [];
+  const _links: t_link_map<L> = new Map();
+  const _linksArr: t_link<L>[] = [];
+  links.forEach((d, k) => {
+    const l = { ...d };
+    _links.set(k, l);
+    _linksArr.push(l);
+  });
+  if (typeof forces !== "function" && forces) {
+    _forces = [
+      forceCollide<t_node_position>().radius(
+        (d) => nodes.get(d.id)!.style.r + 5
+      ),
+      forceManyBody<t_node_position>().strength(
+        (d) => nodes.get(d.id)!.style.r * -6
+      ),
+      forceX(),
+      forceY(),
+      forceLink<t_node_position, t_link<L>>(_linksArr).id((d) => d.id),
+    ];
+  } else if (forces) {
+    _forces = forces(nodes, _links);
+  }
 
-  return {
-    nodes,
-    links,
-  };
+  // unmount old force
+  for (let i = 0; i < forceCount; i++) {
+    simulation.force(String(i), null);
+  }
+
+  // mount new force
+  _forces.forEach((f, index) => {
+    simulation!.force(String(index), f);
+    cnt++;
+  });
+  return cnt;
 }
 export default function GraphSVG<N extends t_node_base, L extends t_link_base>(
   props: Partial<t_graph_render_props<N, L>> = {}
 ) {
   const {
-    nodeStyle = {},
-    linkStyle = {},
-    positions = {},
-    nodes = [],
-    links = [],
+    nodeStyle = GraphDefaultProps.nodeStyle as t_graph_render_props<
+      N,
+      L
+    >["nodeStyle"],
+    linkStyle = GraphDefaultProps.linkStyle as t_graph_render_props<
+      N,
+      L
+    >["linkStyle"],
+    positions = GraphDefaultProps.positions as t_graph_render_props<
+      N,
+      L
+    >["positions"],
+    nodes = GraphDefaultProps.nodes,
+    links = GraphDefaultProps.links,
     zoompan = false,
-    // forces = true,
+    forces = true,
   } = props;
-  //   const nodeStyle = useState(props.nodeStyle || {}),
-  //     linkStyle = useState({}),
-  //     positions = useState({}),
-  //     nodes = [],
-  //     links = [];
 
-  //   let nodeMap = new Map<string, t_node<N>>();
-  //   let linkMap = new Map<string, t_link<N, L>>();
+  const nodeMap = useMemo(() => initNodeData(nodes), [nodes]);
+  const linkMap = useMemo(() => initLinkData(links), [links]);
+  const [_positions, setPos] = useState<t_node_positions>({});
+  const [simulation] = useState(forceSimulation<t_node_position, t_link_base>);
+  const [forceCount, setCount] = useState(0);
+  const svgRef = useRef<null | SVGSVGElement>(null);
+  const zoomRef = useRef<null | SVGGElement>(null);
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const transformStr = useMemo(() => {
+    return `translate(${transform.x} ${transform.y}) scale(${transform.scale})`;
+  }, [transform]);
 
-  console.warn("1");
-  useMemo(() => {
-    console.warn("2");
-    return [[], []];
-    // const data = initData(nodes, links);
-    // nodeMap = data.nodes;
-    // linkMap = data.links;
-    // return [Array.from(data.nodes.values()), Array.from(data.links.values())];
-    // setNodes(Array.from(data.nodes.values()));
-    // setLinks(Array.from(data.links.values()));
-  }, [links, nodes]);
+  simulation.on("tick", () => {
+    if (!nodes.length) return;
+    setPos({ ..._positions });
+  });
 
-  useMemo(() => {
-    console.warn("3");
-  }, [nodeStyle, linkStyle]);
-  useMemo(() => {
-    console.warn("4");
-  }, [positions]);
-  useMemo(() => {
-    console.warn("5");
-  }, [zoompan]);
+  // positions
+  useEffect(() => {
+    const forcePos: t_node_position[] = [];
+    const pos: t_node_positions = {};
+    nodeMap.forEach((d) => {
+      const id = d.id;
+      const p = positions[id] || {
+        id,
+        x: Math.random() * 1000 - 500,
+        y: Math.random() * 1000 - 500,
+      };
+      pos[id] = p;
+      forcePos.push(p);
+    });
+    simulation.nodes(forcePos);
+    setPos({ ...pos });
+  }, [nodeMap, positions]);
+  // nodeStyle
+  useEffect(() => {
+    nodeMap.forEach((d) => {
+      const s = getStyles(d.data, nodeStyle);
+      Object.assign(d.style, s);
+    });
+  }, [nodeMap, nodeStyle]);
+  // linkStyle
+  useEffect(() => {
+    linkMap.forEach((d) => {
+      const s = getStyles(d.data, linkStyle);
+      Object.assign(d.style, s);
+    });
+  }, [linkMap, linkStyle]);
+  // forces
+  useEffect(() => {
+    if (forces) {
+      const cnt = forceBind(simulation, forces, forceCount, nodeMap, linkMap);
+      setCount(cnt);
+    } else {
+      simulation.stop();
+    }
+  }, [forces, nodeMap, linkMap]);
 
-  //   console.warn(nodeMap);
-  //   console.warn(linkMap);
-  // forceSimulation(_nodes)
+  // view box
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const ob = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      el.setAttribute("viewBox", `-${w / 2} -${h / 2} ${w} ${h}`);
+    });
+    ob.observe(el);
+    return () => {
+      ob.disconnect();
+    };
+  }, []);
+
+  function wheel(event: React.WheelEvent<SVGSVGElement>) {
+    event.preventDefault();
+    const svg = svgRef.current;
+    const zoomEl = zoomRef.current;
+    if (!svg || !zoomEl) return;
+
+    const scaleOffset =
+      -event.deltaY *
+      (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) *
+      (event.ctrlKey ? 10 : 1);
+
+    const { scale, translate } = zoom({
+      transformEL: zoomEl,
+      scaleOffset,
+      clientPos: [event.clientX, event.clientY],
+      svg,
+    });
+
+    setTransform({
+      scale,
+      x: translate[0],
+      y: translate[1],
+    });
+  }
+
+  function pointerdown(event: React.PointerEvent<SVGSVGElement>) {
+    const svg = svgRef.current;
+    const zoomEl = zoomRef.current;
+    if (!svg || !zoomEl) return;
+
+    pan([event.clientX, event.clientY], svg, zoomEl, (translate) => {
+      setTransform((d) => {
+        return {
+          ...d,
+          x: translate[0],
+          y: translate[1],
+        };
+      });
+    });
+  }
 
   return (
-    <svg viewBox="0 0 1000 1000">
-      <g>
-        {/* {_links.map((d) => renderLink(d))}
-        {_nodes.map((d) => renderNode(d))} */}
+    <svg
+      viewBox="-500 -500 1000 1000"
+      ref={svgRef}
+      onWheel={zoompan ? wheel : undefined}
+      onPointerDown={zoompan ? pointerdown : undefined}
+    >
+      <g transform={transformStr} ref={zoomRef}>
+        {renderLinks(linkMap, _positions, nodeMap)}
+        {renderNodes(nodeMap, _positions)}
       </g>
     </svg>
   );
 }
-// *********************  SVG
